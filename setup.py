@@ -80,6 +80,6 @@ setup(
     dependency_links=[],
     include_package_data=True,
     zip_safe=False,
-    package_data={"spark_data_frame_comparer": ["py.typed"]},
+    package_data={package_name: ["spark_data_frame_comparer/py.typed"]},
     data_files=[]
 )
