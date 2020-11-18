@@ -85,15 +85,24 @@ def assert_compare_data_frames(
             schema_for_column: StructField = column_schemas[column_num]
             result_value = result_rows[row_num][column_num]
             expected_value = expected_rows[row_num][column_num]
-            error_count = check_column_value(
-                column_num=column_num,
-                error_count=error_count,
-                expected_value=expected_value,
-                result_columns=result_columns,
-                result_value=result_value,
-                row_num=row_num,
-                data_type_for_column=schema_for_column.dataType
-            )
+            if expected_value is None and result_value is None:
+                pass
+            elif result_value is not None or expected_value is not None:
+                error_count += 1
+                print(
+                    f"row {row_num}: column {column_num} " +
+                    f"expected: [{expected_value}] actual: [{result_value}]"
+                )
+            else:
+                error_count += check_column_value(
+                    column_num=column_num,
+                    error_count=error_count,
+                    expected_value=expected_value,
+                    result_columns=result_columns,
+                    result_value=result_value,
+                    row_num=row_num,
+                    data_type_for_column=schema_for_column.dataType
+                )
 
     if error_count > 0:
         print("--------- result ---------")
@@ -113,9 +122,16 @@ def check_column_value(
         for array_item_index in range(0, len(result_value)):
             element_type: StructField = data_type_for_column.elementType
             result_array_item = result_value[array_item_index]
+            if len(expected_value) < array_item_index + 1:
+                error_count += 1
+                print(
+                    f"Expected row:{row_num}, col:{column_num} has only {len(expected_value)} "
+                    f"items but Actual has > {array_item_index + 1}"
+                )
+                return error_count
             expected_array_item = expected_value[array_item_index]
             if isinstance(result_array_item, Row):
-                error_count = check_column_value(
+                error_count += check_column_value(
                     column_num=column_num,
                     error_count=error_count,
                     expected_value=expected_array_item,
@@ -125,7 +141,7 @@ def check_column_value(
                     data_type_for_column=element_type
                 )
     elif isinstance(data_type_for_column, StructType):
-        error_count = check_struct(
+        error_count += check_struct(
             column_num=column_num,
             error_count=error_count,
             expected_value=expected_value,
@@ -135,7 +151,7 @@ def check_column_value(
             data_type_for_column=data_type_for_column
         )
     else:
-        error_count = check_column_simple_value(
+        error_count += check_column_simple_value(
             error_count=error_count,
             expected_value=expected_value,
             result_value=result_value,
