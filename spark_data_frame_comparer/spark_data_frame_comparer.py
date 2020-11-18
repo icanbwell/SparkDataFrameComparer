@@ -87,7 +87,7 @@ def assert_compare_data_frames(
             expected_value = expected_rows[row_num][column_num]
             if expected_value is None and result_value is None:
                 pass
-            elif result_value is not None or expected_value is not None:
+            elif result_value is None or expected_value is None:
                 error_count += 1
                 print(
                     f"row {row_num}: column {column_num} " +
