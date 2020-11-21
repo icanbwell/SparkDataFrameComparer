@@ -166,6 +166,15 @@ def check_struct(
     result_columns: List[Tuple[str, str]], row_num: int,
     data_type_for_column: StructType
 ) -> int:
+    if expected_value is None and result_value is None:
+        return error_count
+    if result_value is None or expected_value is None:
+        error_count += 1
+        print(
+            f"Expected struct in row:{row_num}, col:{column_num} to be {expected_value} "
+            f"but actual is {result_value}"
+        )
+        return error_count
     for struct_item_index in range(0, len(result_value)):
         result_struct_item = result_value[struct_item_index]
         expected_struct_item = expected_value[struct_item_index]
