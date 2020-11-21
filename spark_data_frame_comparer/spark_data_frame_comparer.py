@@ -175,6 +175,12 @@ def check_struct(
             f"but actual is {result_value}"
         )
         return error_count
+    if len(result_value) != len(expected_value):
+        print(
+            f"Expected struct in row:{row_num}, col:{column_num} to be {expected_value} "
+            f"but actual is {result_value}"
+        )
+        return error_count + 1
     for struct_item_index in range(0, len(result_value)):
         result_struct_item = result_value[struct_item_index]
         expected_struct_item = expected_value[struct_item_index]
