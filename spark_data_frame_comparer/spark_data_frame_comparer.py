@@ -118,6 +118,15 @@ def check_column_value(
     data_type_for_column: DataType
 ) -> int:
     if isinstance(data_type_for_column, ArrayType):
+        if result_value is None and expected_value is None:
+            return error_count
+        if result_value is None or expected_value is None:
+            error_count += 1
+            print(
+                f"Expected array in row:{row_num}, col:{column_num} to be {expected_value} "
+                f"but actual is {result_value}"
+            )
+            return error_count
         array_item: Row
         for array_item_index in range(0, len(result_value)):
             element_type: StructField = data_type_for_column.elementType
