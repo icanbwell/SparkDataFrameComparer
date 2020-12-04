@@ -39,7 +39,7 @@ def assert_compare_data_frames(
         # create a temp file to launch the diff tool
         compare_sh_path = Path(temp_folder
                                ).joinpath(f"compare_{expected_path}.sh")
-        with open(compare_sh_path) as compare_sh:
+        with open(compare_sh_path, "w") as compare_sh:
             compare_sh.write(
                 f"/usr/local/bin/charm diff {result_path} {expected_path}"
             )
