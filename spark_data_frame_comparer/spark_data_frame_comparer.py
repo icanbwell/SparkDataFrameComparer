@@ -1,5 +1,7 @@
+import os
 from math import isnan
-from typing import List, Any, Tuple, Optional
+from pathlib import Path
+from typing import List, Any, Tuple, Optional, Union
 
 # noinspection PyProtectedMember
 from pyspark import Row
@@ -15,7 +17,9 @@ def assert_compare_data_frames(
     exclude_columns: Optional[List[str]] = None,
     include_columns: Optional[List[str]] = None,
     order_by: Optional[List[str]] = None,
-    snap_shot_path: Optional[str] = None
+    expected_path: Optional[Union[Path, str]] = None,
+    result_path: Optional[Union[Path, str]] = None,
+    temp_folder: Optional[Union[Path, str]] = None
 ) -> None:
     if exclude_columns:
         result_df = result_df.drop(*exclude_columns)
@@ -30,12 +34,25 @@ def assert_compare_data_frames(
     result_df = result_df.select(sorted(result_df.columns))
     expected_df = expected_df.select(sorted(expected_df.columns))
 
+    compare_sh_path: Optional[Path] = None
+    if expected_path and result_path and temp_folder:
+        # create a temp file to launch the diff tool
+        compare_sh_path = Path(temp_folder
+                               ).joinpath(f"compare_{expected_path}.sh")
+        with open(compare_sh_path, "w") as compare_sh:
+            compare_sh.write(
+                f"/usr/local/bin/charm diff {result_path} {expected_path}"
+            )
+            os.fchmod(compare_sh.fileno(), 0o7777)
+
     assert sorted(result_df.columns) == sorted(
         expected_df.columns
-    ), f"""Columns do not match in {snap_shot_path}.
+    ), f"""Columns do not match in {result_path} compared to {expected_path}.
         Columns not matched:[{diff_lists(expected_df.columns, result_df.columns)}],
         Expected:[{expected_df.columns}],
-        Actual:[{result_df.columns}]"""
+        Actual:[{result_df.columns}]
+        Compare: {compare_sh_path or 'No Compare File'}
+        """
 
     print("schema for result")
     result_df.printSchema()
@@ -54,14 +71,14 @@ def assert_compare_data_frames(
         expected_column = expected_columns[i]
         if result_column != expected_column:
             print(
-                f"column type for {result_column[0]} did not match in {snap_shot_path}: "
+                f"column type for {result_column[0]} did not match in {result_path}: "
                 + f"expected: {expected_column[1]}, actual: {result_column[1]}"
             )
             number_of_mismatched_columns += 1
 
     if number_of_mismatched_columns > 0:
         raise ValueError(
-            f"{number_of_mismatched_columns} columns did not match for {snap_shot_path}.  See list above."
+            f"{number_of_mismatched_columns} columns did not match for {result_path}.  See list above."
         )
 
     print("comparing result to expected")
@@ -75,7 +92,9 @@ def assert_compare_data_frames(
         print("------- difference (expected - result) -------")
         expected_df.subtract(result_df).show(truncate=False, n=100)
     assert expected_df.count() == result_df.count(
-    ), f"expected {expected_df.count()} rows, actual {result_df.count()} rows"
+    ), f"{result_path} did not match expected {expected_path}.  " + \
+       f"Expected {expected_df.count()} rows, actual {result_df.count()} rows" + \
+       f"Compare: {compare_sh_path or 'No Compare File'}"
     error_count: int = 0
     result_rows: List[Row] = result_df.collect()
     expected_rows: List[Row] = expected_df.collect()
@@ -109,7 +128,8 @@ def assert_compare_data_frames(
         result_df.show(truncate=False, n=100)
         print("--------- expected ----------")
         expected_df.show(truncate=False, n=100)
-    assert error_count == 0, f"snapshot did not match result {snap_shot_path}.  See exact error above."
+    assert error_count == 0, f"{result_path} did not match expected {expected_path}.  " + \
+                             f"See exact error above. Compare: [{compare_sh_path or 'No Compare File'}]"
 
 
 def check_column_value(
