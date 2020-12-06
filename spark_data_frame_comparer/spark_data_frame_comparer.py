@@ -1,7 +1,7 @@
 import os
 from math import isnan
 from pathlib import Path
-from typing import List, Any, Tuple, Optional, Union
+from typing import List, Any, Tuple, Optional, Union, Callable
 
 # noinspection PyProtectedMember
 from pyspark import Row
@@ -20,8 +20,24 @@ def assert_compare_data_frames(
     order_by: Optional[List[str]] = None,
     expected_path: Optional[Union[Path, str]] = None,
     result_path: Optional[Union[Path, str]] = None,
-    temp_folder: Optional[Union[Path, str]] = None
+    temp_folder: Optional[Union[Path, str]] = None,
+    func_path_modifier: Optional[Callable[[Union[Path, str]],
+                                          Union[Path, str]]] = None
 ) -> None:
+    """
+    Compare two data frames and throws an exception if there is any difference
+
+    :param func_path_modifier:
+    :param expected_df:
+    :param result_df:
+    :param exclude_columns:
+    :param include_columns:
+    :param order_by:
+    :param expected_path:
+    :param result_path:
+    :param temp_folder:
+    :return:
+    """
     if exclude_columns:
         result_df = result_df.drop(*exclude_columns)
         expected_df = expected_df.drop(*exclude_columns)
@@ -45,7 +61,9 @@ def assert_compare_data_frames(
         )
         with open(compare_sh_path, "w") as compare_sh:
             compare_sh.write(
-                f"/usr/local/bin/charm diff {result_path} {expected_path}"
+                f"/usr/local/bin/charm diff "
+                f"{func_path_modifier(result_path) if func_path_modifier else result_path} "
+                f"{func_path_modifier(expected_path) if func_path_modifier else expected_path}"
             )
             os.fchmod(compare_sh.fileno(), 0o7777)
 
@@ -59,7 +77,8 @@ def assert_compare_data_frames(
             result_path=result_path,
             compare_path=compare_sh_path,
             message="Columns not matched",
-            additional_info=additional_info
+            additional_info=additional_info,
+            func_path_modifier=func_path_modifier
         )
 
     # compare the types
@@ -90,7 +109,8 @@ def assert_compare_data_frames(
             result_path=result_path,
             compare_path=compare_sh_path,
             message=message,
-            additional_info=",".join(mismatched_column_errors)
+            additional_info=",".join(mismatched_column_errors),
+            func_path_modifier=func_path_modifier
         )
 
     if expected_df.count() != result_df.count():
@@ -103,7 +123,8 @@ def assert_compare_data_frames(
             result_path=result_path,
             compare_path=compare_sh_path,
             message=message,
-            additional_info=""
+            additional_info="",
+            func_path_modifier=func_path_modifier
         )
     error_count: int = 0
     result_rows: List[Row] = result_df.collect()
@@ -145,7 +166,8 @@ def assert_compare_data_frames(
             result_path=result_path,
             compare_path=compare_sh_path,
             message=f"{result_path} did not match expected {expected_path}.",
-            additional_info=",".join(my_errors)
+            additional_info=",".join(my_errors),
+            func_path_modifier=func_path_modifier
         )
 
 
