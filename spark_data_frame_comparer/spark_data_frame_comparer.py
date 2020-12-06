@@ -183,10 +183,10 @@ def print_data_frame_info(
     result_df.show(truncate=False, n=100)
     print("--------- expected ----------")
     expected_df.show(truncate=False, n=100)
-    print("------- difference (result - expected) -------")
-    result_df.subtract(expected_df).show(truncate=False, n=100)
-    print("------- difference (expected - result) -------")
-    expected_df.subtract(result_df).show(truncate=False, n=100)
+    # print("------- difference (result - expected) -------")
+    # result_df.subtract(expected_df).show(truncate=False, n=100)
+    # print("------- difference (expected - result) -------")
+    # expected_df.subtract(result_df).show(truncate=False, n=100)
 
 
 def check_column_value(
