@@ -170,6 +170,10 @@ def assert_compare_data_frames(
             func_path_modifier=func_path_modifier
         )
 
+    # if everything worked then remove the compare file
+    if os.path.exists(str(compare_sh_path)):
+        os.remove(str(compare_sh_path))
+
 
 def print_data_frame_info(
     expected_df: DataFrame, result_df: DataFrame
