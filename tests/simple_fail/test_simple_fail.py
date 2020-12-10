@@ -3,11 +3,13 @@ from pathlib import Path
 from shutil import rmtree
 
 import pytest
+# noinspection PyProtectedMember
+from _pytest._code import ExceptionInfo
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.functions import lit
 
 from spark_data_frame_comparer.spark_data_frame_comparer import assert_compare_data_frames
-from spark_data_frame_comparer.spark_data_frame_comparer_exception import SparkDataFrameComparerException
+from spark_data_frame_comparer.spark_data_frame_comparer_exception import SparkDataFrameComparerException, ExceptionType
 from tests.conftest import clean_spark_session
 
 
@@ -31,7 +33,8 @@ def test_can_compare_simple_fail(spark_session: SparkSession) -> None:
     df2.write.json(str(result_path))
 
     # Assert
-    with pytest.raises(SparkDataFrameComparerException):
+    exc_info: ExceptionInfo[SparkDataFrameComparerException]
+    with pytest.raises(SparkDataFrameComparerException) as exc_info:
         assert_compare_data_frames(
             expected_df=df1,
             result_df=df2,
@@ -41,11 +44,7 @@ def test_can_compare_simple_fail(spark_session: SparkSession) -> None:
             func_path_modifier=lambda x: x
         )
 
-    assert path.exists(data_dir.joinpath("temp/compare_complex.json.command"))
-    with open(
-        data_dir.joinpath("temp/compare_complex.json.command"), "r"
-    ) as file:
-        line: str = file.read()
-        assert line == "/usr/local/bin/charm diff " + \
-                       str(data_dir.joinpath("temp/result.json")) + " " + \
-                       str(data_dir.joinpath("input/complex.json"))
+    assert exc_info.value.exception_type == ExceptionType.SchemaMismatch
+    assert not path.exists(
+        data_dir.joinpath("temp/compare_complex.json.command")
+    )

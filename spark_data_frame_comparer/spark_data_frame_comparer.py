@@ -9,7 +9,7 @@ from pyspark.sql import DataFrame
 from pyspark.sql.types import StructField, ArrayType, StructType, DataType
 
 from spark_data_frame_comparer.list_utils import diff_lists
-from spark_data_frame_comparer.spark_data_frame_comparer_exception import SparkDataFrameComparerException
+from spark_data_frame_comparer.spark_data_frame_comparer_exception import SparkDataFrameComparerException, ExceptionType
 
 
 def assert_compare_data_frames(
@@ -70,7 +70,11 @@ def assert_compare_data_frames(
     if sorted(result_df.columns) != sorted(expected_df.columns):
         print_data_frame_info(expected_df=expected_df, result_df=result_df)
         additional_info = f"Columns not matched:[{diff_lists(expected_df.columns, result_df.columns)}]"
+        # remove the compare file since the issue is schema
+        if os.path.exists(str(compare_sh_path)):
+            os.remove(str(compare_sh_path))
         raise SparkDataFrameComparerException(
+            exception_type=ExceptionType.SchemaMismatch,
             result=result_df.columns,
             expected=expected_df.columns,
             expected_path=expected_path,
@@ -94,15 +98,21 @@ def assert_compare_data_frames(
         result_column = result_columns[i]
         expected_column = expected_columns[i]
         if result_column != expected_column:
-            mismatched_column_errors += f"column type for {result_column[0]} did not match in {result_path}: " + \
-                                        f"expected: {expected_column[1]}, actual: {result_column[1]}"
+            mismatched_column_errors.append(
+                f"column type for {result_column[0]} did not match in {result_path}: "
+                f"expected: {expected_column[1]}, actual: {result_column[1]}"
+            )
 
             number_of_mismatched_columns += 1
 
     if number_of_mismatched_columns > 0:
         print_data_frame_info(expected_df=expected_df, result_df=result_df)
         message = f"{number_of_mismatched_columns} column types did not match"
+        # remove the compare file since the issue is schema
+        if os.path.exists(str(compare_sh_path)):
+            os.remove(str(compare_sh_path))
         raise SparkDataFrameComparerException(
+            exception_type=ExceptionType.SchemaMismatch,
             result=result_df.columns,
             expected=expected_df.columns,
             expected_path=expected_path,
@@ -117,6 +127,7 @@ def assert_compare_data_frames(
         print_data_frame_info(expected_df, result_df)
         message = f"Expected {expected_df.count()} rows, actual {result_df.count()} rows"
         raise SparkDataFrameComparerException(
+            exception_type=ExceptionType.RowMismatch,
             result=result_df.count(),
             expected=expected_df.count(),
             expected_path=expected_path,
@@ -140,8 +151,10 @@ def assert_compare_data_frames(
                 pass
             elif result_value is None or expected_value is None:
                 error_count += 1
-                my_errors += f"row {row_num}: column {column_num} " + \
-                             f"expected: [{expected_value}] actual: [{result_value}]"
+                my_errors.append(
+                    f"row {row_num}: column {column_num} "
+                    f"expected: [{expected_value}] actual: [{result_value}]"
+                )
             else:
                 column_error_count: int
                 column_errors: List[str]
@@ -160,6 +173,7 @@ def assert_compare_data_frames(
     if error_count != 0:
         print_data_frame_info(expected_df=expected_df, result_df=result_df)
         raise SparkDataFrameComparerException(
+            exception_type=ExceptionType.DataMismatch,
             result=result_df.count(),
             expected=expected_df.count(),
             expected_path=expected_path,
