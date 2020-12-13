@@ -10,13 +10,13 @@ import pytest
 from pyspark.sql import SparkSession
 
 # make sure env variables are set correctly
-if 'SPARK_HOME' not in os.environ:
-    os.environ['SPARK_HOME'] = '/usr/local/opt/spark'
+if "SPARK_HOME" not in os.environ:
+    os.environ["SPARK_HOME"] = "/usr/local/opt/spark"
 
 
 def quiet_py4j() -> None:
     """ turn down spark logging for the carriers context """
-    logger = logging.getLogger('py4j')
+    logger = logging.getLogger("py4j")
     logger.setLevel(logging.ERROR)
 
 
@@ -67,8 +67,8 @@ def clean_close(session: SparkSession) -> None:
 @pytest.fixture(scope="session")
 def spark_session(request: Any) -> SparkSession:
     # make sure env variables are set correctly
-    if 'SPARK_HOME' not in os.environ:
-        os.environ['SPARK_HOME'] = '/usr/local/opt/spark'
+    if "SPARK_HOME" not in os.environ:
+        os.environ["SPARK_HOME"] = "/usr/local/opt/spark"
 
     clean_spark_dir()
 
@@ -80,14 +80,16 @@ def spark_session(request: Any) -> SparkSession:
     else:
         print(f"++++++ Running on docker spark: {master} ++++")
 
-    session = SparkSession.builder.appName("pytest-pyspark-local-testing"). \
-        master(master). \
-        config("spark.ui.showConsoleProgress", "false"). \
-        config("spark.sql.shuffle.partitions", "2"). \
-        config("spark.default.parallelism", "4"). \
-        config("spark.sql.broadcastTimeout", "2400"). \
-        enableHiveSupport(). \
-        getOrCreate()
+    session = (
+        SparkSession.builder.appName("pytest-pyspark-local-testing")
+        .master(master)
+        .config("spark.ui.showConsoleProgress", "false")
+        .config("spark.sql.shuffle.partitions", "2")
+        .config("spark.default.parallelism", "4")
+        .config("spark.sql.broadcastTimeout", "2400")
+        .enableHiveSupport()
+        .getOrCreate()
+    )
 
     request.addfinalizer(lambda: clean_close(session))
     quiet_py4j()

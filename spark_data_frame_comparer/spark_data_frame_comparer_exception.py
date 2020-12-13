@@ -20,8 +20,9 @@ class SparkDataFrameComparerException(Exception):
         result_path: Optional[Union[Path, str]],
         expected_path: Optional[Union[Path, str]],
         compare_path: Optional[Union[Path, str]],
-        func_path_modifier: Optional[Callable[[Union[Path, str]],
-                                              Union[Path, str]]] = None
+        func_path_modifier: Optional[
+            Callable[[Union[Path, str]], Union[Path, str]]
+        ] = None,
     ) -> None:
         self.exception_type: ExceptionType = exception_type
         self.result: str = result

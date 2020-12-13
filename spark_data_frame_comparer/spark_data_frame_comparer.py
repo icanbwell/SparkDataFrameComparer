@@ -9,7 +9,10 @@ from pyspark.sql import DataFrame
 from pyspark.sql.types import StructField, ArrayType, StructType, DataType
 
 from spark_data_frame_comparer.list_utils import diff_lists
-from spark_data_frame_comparer.spark_data_frame_comparer_exception import SparkDataFrameComparerException, ExceptionType
+from spark_data_frame_comparer.spark_data_frame_comparer_exception import (
+    SparkDataFrameComparerException,
+    ExceptionType,
+)
 
 
 def assert_compare_data_frames(
@@ -21,8 +24,7 @@ def assert_compare_data_frames(
     expected_path: Optional[Union[Path, str]] = None,
     result_path: Optional[Union[Path, str]] = None,
     temp_folder: Optional[Union[Path, str]] = None,
-    func_path_modifier: Optional[Callable[[Union[Path, str]],
-                                          Union[Path, str]]] = None
+    func_path_modifier: Optional[Callable[[Union[Path, str]], Union[Path, str]]] = None,
 ) -> None:
     """
     Compare two data frames and throws an exception if there is any difference
@@ -82,7 +84,7 @@ def assert_compare_data_frames(
             compare_path=compare_sh_path,
             message="Columns not matched",
             additional_info=additional_info,
-            func_path_modifier=func_path_modifier
+            func_path_modifier=func_path_modifier,
         )
 
     # compare the types
@@ -120,12 +122,14 @@ def assert_compare_data_frames(
             compare_path=compare_sh_path,
             message=message,
             additional_info=",".join(mismatched_column_errors),
-            func_path_modifier=func_path_modifier
+            func_path_modifier=func_path_modifier,
         )
 
     if expected_df.count() != result_df.count():
         print_data_frame_info(expected_df, result_df)
-        message = f"Expected {expected_df.count()} rows, actual {result_df.count()} rows"
+        message = (
+            f"Expected {expected_df.count()} rows, actual {result_df.count()} rows"
+        )
         raise SparkDataFrameComparerException(
             exception_type=ExceptionType.RowMismatch,
             result=result_df.count(),
@@ -135,7 +139,7 @@ def assert_compare_data_frames(
             compare_path=compare_sh_path,
             message=message,
             additional_info="",
-            func_path_modifier=func_path_modifier
+            func_path_modifier=func_path_modifier,
         )
     error_count: int = 0
     result_rows: List[Row] = result_df.collect()
@@ -147,7 +151,9 @@ def assert_compare_data_frames(
             schema_for_column: StructField = column_schemas[column_num]
             result_value = result_rows[row_num][column_num]
             expected_value = expected_rows[row_num][column_num]
-            if expected_value is None and result_value is None:
+            if (expected_value is None or expected_value == "") and (
+                result_value is None or result_value == ""
+            ):
                 pass
             elif result_value is None or expected_value is None:
                 error_count += 1
@@ -165,7 +171,7 @@ def assert_compare_data_frames(
                     result_columns=result_columns,
                     result_value=result_value,
                     row_num=row_num,
-                    data_type_for_column=schema_for_column.dataType
+                    data_type_for_column=schema_for_column.dataType,
                 )
                 error_count += column_error_count
                 my_errors = my_errors + column_errors
@@ -181,7 +187,7 @@ def assert_compare_data_frames(
             compare_path=compare_sh_path,
             message=f"{result_path} did not match expected {expected_path}.",
             additional_info=",".join(my_errors),
-            func_path_modifier=func_path_modifier
+            func_path_modifier=func_path_modifier,
         )
 
     # if everything worked then remove the compare file
@@ -189,9 +195,7 @@ def assert_compare_data_frames(
         os.remove(str(compare_sh_path))
 
 
-def print_data_frame_info(
-    expected_df: DataFrame, result_df: DataFrame
-) -> None:
+def print_data_frame_info(expected_df: DataFrame, result_df: DataFrame) -> None:
     print("comparing result to expected")
     print("schema for result")
     result_df.printSchema()
@@ -208,9 +212,13 @@ def print_data_frame_info(
 
 
 def check_column_value(
-    column_num: int, error_count: int, expected_value: Any,
-    result_columns: List[Tuple[str, str]], result_value: Any, row_num: int,
-    data_type_for_column: DataType
+    column_num: int,
+    error_count: int,
+    expected_value: Any,
+    result_columns: List[Tuple[str, str]],
+    result_value: Any,
+    row_num: int,
+    data_type_for_column: DataType,
 ) -> Tuple[int, List[str]]:
     my_errors: List[str] = []
     if isinstance(data_type_for_column, ArrayType):
@@ -241,7 +249,7 @@ def check_column_value(
                     result_value=result_array_item,
                     result_columns=result_columns,
                     row_num=row_num,
-                    data_type_for_column=element_type
+                    data_type_for_column=element_type,
                 )
                 error_count += column_error_count
                 my_errors = my_errors + column_errors
@@ -254,7 +262,7 @@ def check_column_value(
             result_value=result_value,
             result_columns=result_columns,
             row_num=row_num,
-            data_type_for_column=data_type_for_column
+            data_type_for_column=data_type_for_column,
         )
         error_count += column_error_count
         my_errors = my_errors + column_errors
@@ -264,7 +272,7 @@ def check_column_value(
             expected_value=expected_value,
             result_value=result_value,
             row_num=row_num,
-            column_value=result_columns[column_num][0]
+            column_value=result_columns[column_num][0],
         )
         error_count += column_error_count
         my_errors = my_errors + column_errors
@@ -272,9 +280,13 @@ def check_column_value(
 
 
 def check_struct(
-    column_num: int, error_count: int, expected_value: Row, result_value: Row,
-    result_columns: List[Tuple[str, str]], row_num: int,
-    data_type_for_column: StructType
+    column_num: int,
+    error_count: int,
+    expected_value: Row,
+    result_value: Row,
+    result_columns: List[Tuple[str, str]],
+    row_num: int,
+    data_type_for_column: StructType,
 ) -> Tuple[int, List[str]]:
     if expected_value is None and result_value is None:
         return error_count, []
@@ -294,7 +306,8 @@ def check_struct(
         result_struct_item = result_value[struct_item_index]
         expected_struct_item = expected_value[struct_item_index]
         struct_item_type: DataType = data_type_for_column.fields[
-            struct_item_index].dataType
+            struct_item_index
+        ].dataType
         column_error_count: int
         column_errors: List[str]
         column_error_count, column_errors = check_column_value(
@@ -304,7 +317,7 @@ def check_struct(
             result_value=result_struct_item,
             result_columns=result_columns,
             row_num=row_num,
-            data_type_for_column=struct_item_type
+            data_type_for_column=struct_item_type,
         )
         error_count += column_error_count
         my_errors = my_errors + column_errors
@@ -312,21 +325,28 @@ def check_struct(
 
 
 def check_column_simple_value(
-    error_count: int, expected_value: Any, result_value: Any, row_num: int,
-    column_value: Any
+    error_count: int,
+    expected_value: Any,
+    result_value: Any,
+    row_num: int,
+    column_value: Any,
 ) -> Tuple[int, List[str]]:
-    result_isnan = isinstance(result_value, float) and isinstance(
-        expected_value, float
-    ) and (isnan(result_value) == isnan(expected_value))
+    result_isnan = (
+        isinstance(result_value, float)
+        and isinstance(expected_value, float)
+        and (isnan(result_value) == isnan(expected_value))
+    )
     # if result does not match
     #   and result is not NaN
     #   and both result and expected are not false
-    if result_value != expected_value and not result_isnan and not (
-        not result_value and not expected_value
+    if (
+        result_value != expected_value
+        and not result_isnan
+        and not (not result_value and not expected_value)
     ):
         error_count += 1
         return error_count + 1, [
-            f"row {row_num}: column {column_value} " +
-            f"expected: [{expected_value}] actual: [{result_value}]"
+            f"row {row_num}: column {column_value} "
+            + f"expected: [{expected_value}] actual: [{result_value}]"
         ]
     return error_count, []
