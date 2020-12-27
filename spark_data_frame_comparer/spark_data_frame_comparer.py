@@ -144,9 +144,40 @@ def assert_compare_data_frames(
     error_count: int = 0
     result_rows: List[Row] = result_df.collect()
     expected_rows: List[Row] = expected_df.collect()
+    if len(result_rows) != len(expected_rows):
+        print_data_frame_info(expected_df, result_df)
+        message = f"Expected {len(expected_rows)} rows, actual {len(result_rows)} rows in collect()"
+        raise SparkDataFrameComparerException(
+            exception_type=ExceptionType.RowMismatch,
+            result=str(len(result_rows)),
+            expected=str(len(expected_rows)),
+            expected_path=expected_path,
+            result_path=result_path,
+            compare_path=compare_sh_path,
+            message=message,
+            additional_info="",
+            func_path_modifier=func_path_modifier,
+        )
     column_schemas: List[StructField] = [t for t in result_df.schema]
     my_errors: List[str] = []
     for row_num in range(0, len(result_rows)):
+        if len(expected_rows[row_num]) != len(result_rows[row_num]):
+            print_data_frame_info(expected_df, result_df)
+            message = (
+                f"Expected {len(expected_rows[row_num])} columns, actual {len(result_rows[row_num])} "
+                f"columns for row_num: {row_num}"
+            )
+            raise SparkDataFrameComparerException(
+                exception_type=ExceptionType.RowMismatch,
+                result=str(len(result_rows[row_num])),
+                expected=str(len(expected_rows[row_num])),
+                expected_path=expected_path,
+                result_path=result_path,
+                compare_path=compare_sh_path,
+                message=message,
+                additional_info="",
+                func_path_modifier=func_path_modifier,
+            )
         for column_num in range(0, len(result_columns)):
             schema_for_column: StructField = column_schemas[column_num]
             result_value = result_rows[row_num][column_num]
