@@ -69,8 +69,8 @@ class SchemaComparer:
                         SchemaCompareError(
                             column=f"{parent_column_name}.{desired_field.name}",
                             error=f"INFO: {parent_column_name}.{desired_field.name} not found in source but is nullable so that's fine",
-                            source_schema=source_schema,
-                            desired_schema=desired_schema,
+                            source_schema=NullType(),
+                            desired_schema=desired_field.dataType,
                         )
                     )
                 else:
@@ -78,8 +78,8 @@ class SchemaComparer:
                         SchemaCompareError(
                             column=f"{parent_column_name}.{desired_field.name}",
                             error=f"ERROR: {parent_column_name}.{desired_field.name} not found in source and is not nullable",
-                            source_schema=source_schema,
-                            desired_schema=desired_schema,
+                            source_schema=NullType(),
+                            desired_schema=desired_field.dataType,
                         )
                     )
                 continue
