@@ -4,11 +4,27 @@ from pyspark.sql.types import StructType, StructField, ArrayType, DataType
 
 
 class SchemaCompareError:
-    def __init__(self, error: str) -> None:
+    def __init__(
+        self,
+        column: Optional[str],
+        error: str,
+        source_schema: DataType,
+        desired_schema: DataType,
+    ) -> None:
+        self.column: Optional[str] = column
         self.error: str = error
+        self.source_schema: DataType = source_schema
+        self.desired_schema: DataType = desired_schema
 
     def __str__(self) -> str:
-        return self.error
+        return (
+            (("[" + self.column + "]") if self.column else "")
+            + self.error
+            + "\n"
+            + str(self.source_schema)
+            + "\n"
+            + str(self.desired_schema)
+        )
 
 
 class SchemaComparerResult:
@@ -29,7 +45,10 @@ class SchemaComparer:
         if not isinstance(source_schema, StructType):
             return [
                 SchemaCompareError(
-                    f"ERROR: Type of {parent_column_name} does not match.  source={source_schema}, desired={desired_schema}"
+                    column=parent_column_name,
+                    error=f"ERROR: Type of {parent_column_name} does not match.",
+                    source_schema=source_schema,
+                    desired_schema=desired_schema,
                 )
             ]
 
@@ -42,13 +61,19 @@ class SchemaComparer:
                 if desired_field.nullable:
                     errors.append(
                         SchemaCompareError(
-                            f"{parent_column_name}.{desired_field.name} not found in source but is nullable so that's fine"
+                            column=f"{parent_column_name}.{desired_field.name}",
+                            error=f"{parent_column_name}.{desired_field.name} not found in source but is nullable so that's fine",
+                            source_schema=source_schema,
+                            desired_schema=desired_schema,
                         )
                     )
                 else:
                     errors.append(
                         SchemaCompareError(
-                            f"ERROR: {parent_column_name}.{desired_field.name} not found in source and is not nullable"
+                            column=f"{parent_column_name}.{desired_field.name}",
+                            error=f"ERROR: {parent_column_name}.{desired_field.name} not found in source and is not nullable",
+                            source_schema=source_schema,
+                            desired_schema=desired_schema,
                         )
                     )
                 continue
@@ -69,7 +94,10 @@ class SchemaComparer:
         if not isinstance(source_schema, ArrayType):
             return [
                 SchemaCompareError(
-                    f"ERROR: Type of {parent_column_name} does not match.  source={source_schema}, desired={desired_schema}"
+                    column=parent_column_name,
+                    error=f"ERROR: Type of {parent_column_name} does not match.",
+                    source_schema=source_schema,
+                    desired_schema=desired_schema,
                 )
             ]
 
@@ -89,7 +117,10 @@ class SchemaComparer:
         if desired_schema != source_schema:
             return [
                 SchemaCompareError(
-                    f"ERROR: Type of {parent_column_name} does not match.  source={source_schema}, desired={desired_schema}"
+                    column=parent_column_name,
+                    error=f"ERROR: Type of {parent_column_name} does not match.",
+                    source_schema=source_schema,
+                    desired_schema=desired_schema,
                 )
             ]
         return []
