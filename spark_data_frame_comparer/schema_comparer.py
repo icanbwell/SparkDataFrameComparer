@@ -1,17 +1,41 @@
+from enum import Enum
 from typing import Optional, List
 
-from pyspark.sql.types import StructType, StructField, ArrayType, DataType, NullType
+# noinspection PyProtectedMember
+from pyspark.sql.types import (
+    StructType,
+    StructField,
+    ArrayType,
+    DataType,
+    NullType,
+    StringType,
+    BinaryType,
+    IntegralType,
+    BooleanType,
+    DateType,
+    TimestampType,
+    NumericType,
+)
+
+
+class SchemaCompareErrorType(Enum):
+    INFO = 1
+    WARNING = 2
+    ERROR = 3
+    FATAL = 4
 
 
 class SchemaCompareError:
     def __init__(
         self,
         column: Optional[str],
+        error_type: SchemaCompareErrorType,
         error: str,
         source_schema: DataType,
         desired_schema: DataType,
     ) -> None:
         self.column: Optional[str] = column
+        self.error_type: SchemaCompareErrorType = error_type
         self.error: str = error
         self.source_schema: DataType = source_schema
         self.desired_schema: DataType = desired_schema
@@ -20,6 +44,8 @@ class SchemaCompareError:
         return (
             (("column: [" + self.column + "]") if self.column else "")
             + "\n"
+            + str(self.error_type)
+            + ": "
             + self.error
             + "\n"
             + "source_schema: "
@@ -52,7 +78,8 @@ class SchemaComparer:
             return [
                 SchemaCompareError(
                     column=parent_column_name,
-                    error=f"ERROR: Type of {parent_column_name} does not match with struct.",
+                    error_type=SchemaCompareErrorType.ERROR,
+                    error=f"Type of {parent_column_name} does not match with struct.",
                     source_schema=source_schema,
                     desired_schema=desired_schema,
                 )
@@ -68,7 +95,8 @@ class SchemaComparer:
                     errors.append(
                         SchemaCompareError(
                             column=f"{parent_column_name}.{desired_field.name}",
-                            error=f"INFO: {parent_column_name}.{desired_field.name} not found in source but is nullable so that's fine",
+                            error_type=SchemaCompareErrorType.INFO,
+                            error=f"{parent_column_name}.{desired_field.name} not found in source but is nullable so that's fine",
                             source_schema=NullType(),
                             desired_schema=desired_field.dataType,
                         )
@@ -77,7 +105,8 @@ class SchemaComparer:
                     errors.append(
                         SchemaCompareError(
                             column=f"{parent_column_name}.{desired_field.name}",
-                            error=f"ERROR: {parent_column_name}.{desired_field.name} not found in source and is not nullable",
+                            error_type=SchemaCompareErrorType.ERROR,
+                            error=f"{parent_column_name}.{desired_field.name} not found in source and is not nullable",
                             source_schema=NullType(),
                             desired_schema=desired_field.dataType,
                         )
@@ -104,7 +133,8 @@ class SchemaComparer:
             return [
                 SchemaCompareError(
                     column=parent_column_name,
-                    error=f"ERROR: Type of {parent_column_name} does not match with array.",
+                    error_type=SchemaCompareErrorType.ERROR,
+                    error=f"Type of {parent_column_name} does not match with array.",
                     source_schema=source_schema,
                     desired_schema=desired_schema,
                 )
@@ -127,14 +157,28 @@ class SchemaComparer:
 
         # compare the two
         if desired_schema != source_schema:
-            return [
-                SchemaCompareError(
-                    column=parent_column_name,
-                    error=f"ERROR: Type of {parent_column_name} does not match with simple type.",
-                    source_schema=source_schema,
-                    desired_schema=desired_schema,
-                )
-            ]
+            if SchemaComparer.can_cast(
+                source_type=source_schema, desired_type=desired_schema
+            ):
+                return [
+                    SchemaCompareError(
+                        column=parent_column_name,
+                        error_type=SchemaCompareErrorType.INFO,
+                        error=f"Type of {parent_column_name} does not match with simple type but can be casted.",
+                        source_schema=source_schema,
+                        desired_schema=desired_schema,
+                    )
+                ]
+            else:
+                return [
+                    SchemaCompareError(
+                        column=parent_column_name,
+                        error_type=SchemaCompareErrorType.ERROR,
+                        error=f"Type of {parent_column_name} does not match with simple type.",
+                        source_schema=source_schema,
+                        desired_schema=desired_schema,
+                    )
+                ]
         return []
 
     @staticmethod
@@ -161,6 +205,70 @@ class SchemaComparer:
                 source_schema=source_schema,
                 desired_schema=desired_schema,
             )
+
+    @staticmethod
+    def can_cast(source_type: DataType, desired_type: DataType) -> bool:
+        if isinstance(source_type, NullType):
+            return True
+
+        if isinstance(desired_type, StringType):
+            return True
+
+        if isinstance(source_type, StringType) and isinstance(desired_type, BinaryType):
+            return True
+
+        if isinstance(source_type, IntegralType) and isinstance(
+            desired_type, BinaryType
+        ):
+            return True
+
+        if isinstance(source_type, StringType) and isinstance(
+            desired_type, BooleanType
+        ):
+            return True
+
+        if isinstance(source_type, DateType) and isinstance(desired_type, BooleanType):
+            return True
+
+        if isinstance(source_type, TimestampType) and isinstance(
+            desired_type, BooleanType
+        ):
+            return True
+
+        if isinstance(source_type, NumericType) and isinstance(
+            desired_type, BooleanType
+        ):
+            return True
+
+        if isinstance(source_type, StringType) and isinstance(
+            desired_type, TimestampType
+        ):
+            return True
+
+        if isinstance(source_type, BooleanType) and isinstance(
+            desired_type, TimestampType
+        ):
+            return True
+
+        if isinstance(source_type, DateType) and isinstance(
+            desired_type, TimestampType
+        ):
+            return True
+
+        if isinstance(source_type, NumericType) and isinstance(
+            desired_type, TimestampType
+        ):
+            return True
+
+        if isinstance(source_type, StringType) and isinstance(desired_type, DateType):
+            return True
+
+        if isinstance(source_type, TimestampType) and isinstance(
+            desired_type, DateType
+        ):
+            return True
+
+        return False
 
     @staticmethod
     def compare_schema(
