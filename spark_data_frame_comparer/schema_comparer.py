@@ -18,13 +18,14 @@ class SchemaCompareError:
 
     def __str__(self) -> str:
         return (
-            (("[" + self.column + "]") if self.column else "")
+            (("column: [" + self.column + "]") if self.column else "")
+            + "\n"
             + self.error
             + "\n"
-            + "source_schema:"
+            + "source_schema: "
             + str(self.source_schema)
             + "\n"
-            + "desired_schema:"
+            + "desired_schema: "
             + str(self.desired_schema)
             + "\n"
         )
