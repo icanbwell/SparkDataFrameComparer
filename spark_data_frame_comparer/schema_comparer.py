@@ -1,6 +1,6 @@
 from typing import Optional, List
 
-from pyspark.sql.types import StructType, StructField, ArrayType, DataType
+from pyspark.sql.types import StructType, StructField, ArrayType, DataType, NullType
 
 
 class SchemaCompareError:
@@ -46,11 +46,13 @@ class SchemaComparer:
         source_schema: DataType,
         desired_schema: StructType,
     ) -> List[SchemaCompareError]:
+        if isinstance(source_schema, NullType):
+            return []
         if not isinstance(source_schema, StructType):
             return [
                 SchemaCompareError(
                     column=parent_column_name,
-                    error=f"ERROR: Type of {parent_column_name} does not match.",
+                    error=f"ERROR: Type of {parent_column_name} does not match with struct.",
                     source_schema=source_schema,
                     desired_schema=desired_schema,
                 )
@@ -95,11 +97,14 @@ class SchemaComparer:
         source_schema: DataType,
         desired_schema: ArrayType,
     ) -> List[SchemaCompareError]:
+        if isinstance(source_schema, NullType):
+            return []
+
         if not isinstance(source_schema, ArrayType):
             return [
                 SchemaCompareError(
                     column=parent_column_name,
-                    error=f"ERROR: Type of {parent_column_name} does not match.",
+                    error=f"ERROR: Type of {parent_column_name} does not match with array.",
                     source_schema=source_schema,
                     desired_schema=desired_schema,
                 )
@@ -117,12 +122,15 @@ class SchemaComparer:
         source_schema: DataType,
         desired_schema: DataType,
     ) -> List[SchemaCompareError]:
+        if isinstance(source_schema, NullType):
+            return []
+
         # compare the two
         if desired_schema != source_schema:
             return [
                 SchemaCompareError(
                     column=parent_column_name,
-                    error=f"ERROR: Type of {parent_column_name} does not match.",
+                    error=f"ERROR: Type of {parent_column_name} does not match with simple type.",
                     source_schema=source_schema,
                     desired_schema=desired_schema,
                 )
