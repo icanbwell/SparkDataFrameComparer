@@ -21,9 +21,12 @@ class SchemaCompareError:
             (("[" + self.column + "]") if self.column else "")
             + self.error
             + "\n"
+            + "source_schema:"
             + str(self.source_schema)
             + "\n"
+            + "desired_schema:"
             + str(self.desired_schema)
+            + "\n"
         )
 
 
@@ -62,7 +65,7 @@ class SchemaComparer:
                     errors.append(
                         SchemaCompareError(
                             column=f"{parent_column_name}.{desired_field.name}",
-                            error=f"{parent_column_name}.{desired_field.name} not found in source but is nullable so that's fine",
+                            error=f"INFO: {parent_column_name}.{desired_field.name} not found in source but is nullable so that's fine",
                             source_schema=source_schema,
                             desired_schema=desired_schema,
                         )
