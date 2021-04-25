@@ -77,8 +77,8 @@ def assert_compare_data_frames(
             os.remove(str(compare_sh_path))
         raise SparkDataFrameComparerException(
             exception_type=ExceptionType.SchemaMismatch,
-            result=result_df.columns,
-            expected=expected_df.columns,
+            result=",".join(result_df.columns),
+            expected=",".join(expected_df.columns),
             expected_path=expected_path,
             result_path=result_path,
             compare_path=compare_sh_path,
@@ -115,8 +115,8 @@ def assert_compare_data_frames(
             os.remove(str(compare_sh_path))
         raise SparkDataFrameComparerException(
             exception_type=ExceptionType.SchemaMismatch,
-            result=result_df.columns,
-            expected=expected_df.columns,
+            result=",".join(result_df.columns),
+            expected=",".join(expected_df.columns),
             expected_path=expected_path,
             result_path=result_path,
             compare_path=compare_sh_path,
@@ -132,8 +132,8 @@ def assert_compare_data_frames(
         )
         raise SparkDataFrameComparerException(
             exception_type=ExceptionType.RowMismatch,
-            result=result_df.count(),
-            expected=expected_df.count(),
+            result=str(result_df.count()),
+            expected=str(expected_df.count()),
             expected_path=expected_path,
             result_path=result_path,
             compare_path=compare_sh_path,
@@ -211,8 +211,8 @@ def assert_compare_data_frames(
         print_data_frame_info(expected_df=expected_df, result_df=result_df)
         raise SparkDataFrameComparerException(
             exception_type=ExceptionType.DataMismatch,
-            result=result_df.count(),
-            expected=expected_df.count(),
+            result=str(result_df.count()),
+            expected=str(expected_df.count()),
             expected_path=expected_path,
             result_path=result_path,
             compare_path=compare_sh_path,
@@ -262,7 +262,7 @@ def check_column_value(
             ]
         array_item: Row
         for array_item_index in range(0, len(result_value)):
-            element_type: StructField = data_type_for_column.elementType
+            element_type: DataType = data_type_for_column.elementType
             result_array_item = result_value[array_item_index]
             if len(expected_value) < array_item_index + 1:
                 return error_count + 1, [
