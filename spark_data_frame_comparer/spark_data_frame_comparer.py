@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from math import isnan
 from pathlib import Path
 from typing import List, Any, Tuple, Optional, Union, Callable
@@ -371,7 +372,7 @@ def check_column_simple_value(
     #   and result is not NaN
     #   and both result and expected are not false
     if (
-        result_value != expected_value
+        not compare_scalar(expected_value, result_value)
         and not result_isnan
         and not (not result_value and not expected_value)
     ):
@@ -381,3 +382,15 @@ def check_column_simple_value(
             + f"expected: [{expected_value}] actual: [{result_value}]"
         ]
     return error_count, []
+
+
+def compare_scalar(
+    expected_value: Union[int, float, bool, str],
+    result_value: Union[int, float, bool, str],
+) -> bool:
+    # for datetime lose the microseconds when comparing
+    if isinstance(expected_value, datetime) and isinstance(result_value, datetime):
+        return expected_value.replace(microsecond=0) == result_value.replace(
+            microsecond=0
+        )
+    return result_value == expected_value
