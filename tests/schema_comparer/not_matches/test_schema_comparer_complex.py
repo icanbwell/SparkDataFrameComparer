@@ -2,11 +2,10 @@ from pyspark.sql.types import (
     StructType,
     StructField,
     StringType,
-    IntegerType,
-    FloatType,
     ArrayType,
     BooleanType,
     TimestampType,
+    NullType,
 )
 
 from spark_data_frame_comparer.schema_comparer import (
@@ -18,12 +17,34 @@ from spark_data_frame_comparer.schema_comparer import (
 
 def test_schema_comparer_complex_not_match() -> None:
     print("")
-    source_schema: StructType = StructType(
-        [
-            StructField("name", ArrayType(StructField("given2", FloatType()))),
-            StructField("age", IntegerType()),
-        ]
+    source_schema: ArrayType = ArrayType(
+        StructType(
+            [
+                StructField("id", NullType(), True),
+                StructField("type", NullType(), True),
+                StructField(
+                    "actor",
+                    StructType(
+                        [
+                            StructField("id", NullType(), True),
+                            StructField("extension", NullType(), True),
+                            StructField("reference", StringType(), False),
+                            StructField("type", NullType(), True),
+                            StructField("identifier", NullType(), True),
+                            StructField("display", NullType(), True),
+                        ]
+                    ),
+                    False,
+                ),
+                StructField("required", NullType(), True),
+                StructField("status", StringType(), False),
+                StructField("period", NullType(), True),
+                StructField("extension", NullType(), True),
+            ]
+        ),
+        False,
     )
+
     desired_schema: ArrayType = ArrayType(
         StructType(
             [
@@ -295,7 +316,7 @@ def test_schema_comparer_complex_not_match() -> None:
     )
 
     result: SchemaComparerResult = SchemaComparer.compare_schema(
-        parent_column_name="identifier",
+        parent_column_name=None,
         source_schema=source_schema,
         desired_schema=desired_schema,
     )
