@@ -129,13 +129,12 @@ class SchemaComparer:
                     )
             else:
                 i += 1  # match found so increment source
-
-            source_field: StructField = source_schema[desired_field.name]
-            errors += SchemaComparer.compare_data_type(
-                parent_column_name=f"{parent_column_name}.{desired_field.name}",
-                source_schema=source_field.dataType,
-                desired_schema=desired_field.dataType,
-            )
+                source_field: StructField = source_schema[desired_field.name]
+                errors += SchemaComparer.compare_data_type(
+                    parent_column_name=f"{parent_column_name}.{desired_field.name}",
+                    source_schema=source_field.dataType,
+                    desired_schema=desired_field.dataType,
+                )
         return errors
 
     @staticmethod
