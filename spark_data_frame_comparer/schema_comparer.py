@@ -1,7 +1,9 @@
+import traceback
 from enum import Enum
 from typing import Optional, List
 
 # noinspection PyProtectedMember
+import sys
 from pyspark.sql.types import (
     StructType,
     StructField,
@@ -15,6 +17,10 @@ from pyspark.sql.types import (
     DateType,
     TimestampType,
     NumericType,
+)
+
+from spark_data_frame_comparer.sparjk_data_frame_comparer_generic_exception import (
+    SparkDataFrameComparerGenericException,
 )
 
 
@@ -89,10 +95,21 @@ class SchemaComparer:
         desired_field: StructField
         i: int = 0
         for desired_field in desired_schema.fields:
-            source_field_name: str = source_schema.names[i]
             # first see if the field exists in source_schema.
             # if destination field is nullable then it is fine if there is no source field
-            if desired_field.name != source_field_name:
+            if i >= len(source_schema.names):
+                # nothing to match so skip
+                if not desired_field.nullable:
+                    errors.append(
+                        SchemaCompareError(
+                            column=f"{parent_column_name}.{desired_field.name}",
+                            error_type=SchemaCompareErrorType.ERROR,
+                            error=f"{parent_column_name}.{desired_field.name} not found in source and is not nullable",
+                            source_schema=NullType(),
+                            desired_schema=desired_field.dataType,
+                        )
+                    )
+            elif desired_field.name != source_schema.names[i]:
                 if desired_field.name in source_schema.names:
                     # it's in wrong place
                     errors.append(
@@ -293,10 +310,15 @@ class SchemaComparer:
         source_schema: DataType,
         desired_schema: DataType,
     ) -> SchemaComparerResult:
-        result: SchemaComparerResult = SchemaComparerResult()
-        result.errors = SchemaComparer.compare_data_type(
-            parent_column_name=parent_column_name,
-            source_schema=source_schema,
-            desired_schema=desired_schema,
-        )
-        return result
+        try:
+            result: SchemaComparerResult = SchemaComparerResult()
+            result.errors = SchemaComparer.compare_data_type(
+                parent_column_name=parent_column_name,
+                source_schema=source_schema,
+                desired_schema=desired_schema,
+            )
+            return result
+        except:
+            e = sys.exc_info()[0]
+            msg = traceback.format_exc()
+            raise SparkDataFrameComparerGenericException(e, msg) from e
