@@ -87,11 +87,27 @@ class SchemaComparer:
 
         errors: List[SchemaCompareError] = []
         desired_field: StructField
+        i: int = 0
         for desired_field in desired_schema.fields:
-            # first see if the field exists in source_schema
-            if desired_field.name not in source_schema.names:
+            source_field_name: str = source_schema.names[i]
+            # first see if the field exists in source_schema.
+            # if destination field is nullable then it is fine if there is no source field
+            if desired_field.name != source_field_name:
+                if desired_field.name in source_schema.names:
+                    # it's in wrong place
+                    errors.append(
+                        SchemaCompareError(
+                            column=f"{parent_column_name}.{desired_field.name}",
+                            error_type=SchemaCompareErrorType.ERROR,
+                            error=f"{parent_column_name}.{desired_field.name} is not in the same order as source."
+                            f" source=[{','.join(source_schema.names)}]"
+                            f" destination=[{','.join(desired_schema.names)}]",
+                            source_schema=NullType(),
+                            desired_schema=desired_field.dataType,
+                        )
+                    )
                 # if field is nullable then it's ok
-                if desired_field.nullable:
+                elif desired_field.nullable:
                     errors.append(
                         SchemaCompareError(
                             column=f"{parent_column_name}.{desired_field.name}",
@@ -111,7 +127,9 @@ class SchemaComparer:
                             desired_schema=desired_field.dataType,
                         )
                     )
-                continue
+            else:
+                i += 1  # match found so increment source
+
             source_field: StructField = source_schema[desired_field.name]
             errors += SchemaComparer.compare_data_type(
                 parent_column_name=f"{parent_column_name}.{desired_field.name}",
