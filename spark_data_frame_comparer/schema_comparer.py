@@ -70,6 +70,18 @@ class SchemaComparerResult:
     def __str__(self) -> str:
         return "\n".join([str(e) for e in self.errors])
 
+    def to_string(self, include_info: bool = False) -> str:
+        if include_info is True:
+            return "\n".join([str(e) for e in self.errors])
+        else:
+            return "\n".join(
+                [
+                    str(e)
+                    for e in self.errors
+                    if e.error_type != SchemaCompareErrorType.INFO
+                ]
+            )
+
 
 class SchemaComparer:
     @staticmethod
@@ -152,6 +164,23 @@ class SchemaComparer:
                     source_schema=source_field.dataType,
                     desired_schema=desired_field.dataType,
                 )
+
+        # now check if source has extra columns
+        for source_field in source_schema.fields:
+            if source_field.name not in [
+                desired_field.name for desired_field in desired_schema.fields
+            ]:
+                errors.append(
+                    SchemaCompareError(
+                        column=f"{parent_column_name}.{source_field.name}",
+                        error_type=SchemaCompareErrorType.ERROR,
+                        error=f"{parent_column_name}.{source_field.name} is in source schema"
+                        " but not in destination schema",
+                        source_schema=source_field.dataType,
+                        desired_schema=NullType(),
+                    )
+                )
+
         return errors
 
     @staticmethod
@@ -312,11 +341,19 @@ class SchemaComparer:
     ) -> SchemaComparerResult:
         try:
             result: SchemaComparerResult = SchemaComparerResult()
-            result.errors = SchemaComparer.compare_data_type(
+            errors: List[SchemaCompareError] = SchemaComparer.compare_data_type(
                 parent_column_name=parent_column_name,
                 source_schema=source_schema,
                 desired_schema=desired_schema,
             )
+            # sort the errors by type
+            result.errors = (
+                [e for e in errors if e.error_type == SchemaCompareErrorType.FATAL]
+                + [e for e in errors if e.error_type == SchemaCompareErrorType.ERROR]
+                + [e for e in errors if e.error_type == SchemaCompareErrorType.WARNING]
+                + [e for e in errors if e.error_type == SchemaCompareErrorType.INFO]
+            )
+
             return result
         except:
             e = sys.exc_info()[0]
