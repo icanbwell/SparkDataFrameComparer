@@ -1,0 +1,12 @@
+version: '3.5'
+services:
+  dev:
+    user: root
+    build:
+      dockerfile: spark.Dockerfile
+      context: .
+    image: sparkdataframecomparer_dev
+    volumes:
+      - ./:/sam/
+    container_name: sparkdataframecomparer_dev
+    working_dir: /sam
