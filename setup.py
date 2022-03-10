@@ -1,5 +1,5 @@
 # noinspection Mypy
-from typing import List, Any
+from typing import Any
 
 from setuptools import setup, find_packages
 from os import path, getcwd
@@ -41,27 +41,11 @@ def fix_setuptools() -> None:
 # Fix bugs in setuptools.
 fix_setuptools()
 
-
-def parse_requirements(file: str) -> List[str]:
-    with open(file, "r") as fs:
-        return [
-            r
-            for r in fs.read().splitlines()
-            if (
-                len(r.strip()) > 0
-                and not r.strip().startswith("#")
-                and not r.strip().startswith("--")
-            )
-        ]
-
-
-requirements: List[str] = parse_requirements("requirements.txt")
-test_requirements: List[str] = parse_requirements("requirements-test.txt")
-
 # classifiers list is here: https://pypi.org/classifiers/
 
 # create the package setup
 setup(
+    install_requires=["pyspark==3.1.1", "logger>=1.4"],
     name=package_name,
     version=version,
     author="Imran Qureshi",
@@ -71,18 +55,16 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/imranq2/sparkdataframecomparer",
     packages=find_packages(),
-    install_requires=requirements,
-    tests_require=test_requirements,
     classifiers=[
         "Development Status :: 4 - Beta",
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: OS Independent",
     ],
-    python_requires=">=3.6",
+    python_requires=">=3",
     dependency_links=[],
     include_package_data=True,
     zip_safe=False,
-    package_data={package_name: ["spark_data_frame_comparer/py.typed"]},
+    package_data={package_name: ["py.typed"]},
     data_files=[],
 )
