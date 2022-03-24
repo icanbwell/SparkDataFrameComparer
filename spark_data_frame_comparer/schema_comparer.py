@@ -119,7 +119,12 @@ class SchemaComparer:
                         SchemaCompareError(
                             column=f"{parent_column_name}.{desired_field.name}",
                             error_type=SchemaCompareErrorType.ERROR,
-                            error=f"{parent_column_name}.{desired_field.name} not found in source and is not nullable",
+                            error=f"{parent_column_name}.{desired_field.name} not found in source"
+                            + (
+                                " and is not nullable"
+                                if allow_missing_nullable_properties
+                                else " and is within an array so even nullable properties must be present"
+                            ),
                             source_schema=NullType(),
                             desired_schema=desired_field.dataType,
                         )
@@ -144,7 +149,12 @@ class SchemaComparer:
                         SchemaCompareError(
                             column=f"{parent_column_name}.{desired_field.name}",
                             error_type=SchemaCompareErrorType.INFO,
-                            error=f"{parent_column_name}.{desired_field.name} not found in source but is nullable so that's fine",
+                            error=f"{parent_column_name}.{desired_field.name} not found in source"
+                            + (
+                                " and is not nullable"
+                                if allow_missing_nullable_properties
+                                else " and is within an array so even nullable properties must be present"
+                            ),
                             source_schema=NullType(),
                             desired_schema=desired_field.dataType,
                         )
