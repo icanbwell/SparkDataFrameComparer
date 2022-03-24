@@ -114,7 +114,7 @@ class SchemaComparer:
             # if destination field is nullable then it is fine if there is no source field
             if i >= len(source_schema.names):
                 # nothing to match so skip
-                if not desired_field.nullable:
+                if not desired_field.nullable or not allow_missing_nullable_properties:
                     errors.append(
                         SchemaCompareError(
                             column=f"{parent_column_name}.{desired_field.name}",
@@ -139,7 +139,7 @@ class SchemaComparer:
                         )
                     )
                 # if field is nullable then it's ok
-                elif desired_field.nullable:
+                elif desired_field.nullable and allow_missing_nullable_properties:
                     errors.append(
                         SchemaCompareError(
                             column=f"{parent_column_name}.{desired_field.name}",
