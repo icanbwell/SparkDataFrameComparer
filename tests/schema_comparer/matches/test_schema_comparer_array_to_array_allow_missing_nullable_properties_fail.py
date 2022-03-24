@@ -38,4 +38,8 @@ def test_schema_comparer_array_to_array_allow_missing_nullable_properties_fail()
         desired_schema=desired_schema,
     )
 
-    assert len(result.errors) == 0
+    assert len(result.errors) == 1
+    assert (
+        result.errors[0].error
+        == "None.name.bar is in source schema but not in destination schema"
+    )
