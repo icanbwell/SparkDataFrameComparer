@@ -19,6 +19,7 @@ from pyspark.sql.types import (
     NumericType,
 )
 
+from spark_data_frame_comparer.schema_comparison_item import SchemaComparisonItem
 from spark_data_frame_comparer.sparjk_data_frame_comparer_generic_exception import (
     SparkDataFrameComparerGenericException,
 )
@@ -89,6 +90,7 @@ class SchemaComparer:
         parent_column_name: Optional[str],
         source_schema: DataType,
         desired_schema: StructType,
+        schema_comparison: SchemaComparisonItem,
     ) -> List[SchemaCompareError]:
         if isinstance(source_schema, NullType):
             return []
@@ -163,6 +165,7 @@ class SchemaComparer:
                     parent_column_name=f"{parent_column_name}.{desired_field.name}",
                     source_schema=source_field.dataType,
                     desired_schema=desired_field.dataType,
+                    schema_comparison=schema_comparison,
                 )
 
         # now check if source has extra columns
@@ -188,6 +191,7 @@ class SchemaComparer:
         parent_column_name: Optional[str],
         source_schema: DataType,
         desired_schema: ArrayType,
+        schema_comparison: SchemaComparisonItem,
     ) -> List[SchemaCompareError]:
         if isinstance(source_schema, NullType):
             return []
@@ -207,6 +211,7 @@ class SchemaComparer:
             parent_column_name=parent_column_name,
             source_schema=source_schema.elementType,
             desired_schema=desired_schema.elementType,
+            schema_comparison=schema_comparison,
         )
 
     @staticmethod
@@ -214,6 +219,7 @@ class SchemaComparer:
         parent_column_name: Optional[str],
         source_schema: DataType,
         desired_schema: DataType,
+        schema_comparison: SchemaComparisonItem,
     ) -> List[SchemaCompareError]:
         if isinstance(source_schema, NullType):
             return []
@@ -249,24 +255,28 @@ class SchemaComparer:
         parent_column_name: Optional[str],
         source_schema: DataType,
         desired_schema: DataType,
+        schema_comparison: SchemaComparisonItem,
     ) -> List[SchemaCompareError]:
         if isinstance(desired_schema, StructType):
             return SchemaComparer.compare_struct(
                 parent_column_name=parent_column_name,
                 source_schema=source_schema,
                 desired_schema=desired_schema,
+                schema_comparison=schema_comparison,
             )
         elif isinstance(desired_schema, ArrayType):
             return SchemaComparer.compare_array(
                 parent_column_name=parent_column_name,
                 source_schema=source_schema,
                 desired_schema=desired_schema,
+                schema_comparison=schema_comparison,
             )
         else:
             return SchemaComparer.compare_simple(
                 parent_column_name=parent_column_name,
                 source_schema=source_schema,
                 desired_schema=desired_schema,
+                schema_comparison=schema_comparison,
             )
 
     @staticmethod
@@ -345,6 +355,7 @@ class SchemaComparer:
                 parent_column_name=parent_column_name,
                 source_schema=source_schema,
                 desired_schema=desired_schema,
+                schema_comparison=SchemaComparisonItem(),
             )
             # sort the errors by type
             result.errors = (
