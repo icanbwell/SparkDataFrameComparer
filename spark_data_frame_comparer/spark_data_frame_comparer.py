@@ -4,10 +4,8 @@ from math import isnan
 from pathlib import Path
 from typing import List, Any, Tuple, Optional, Union, Callable
 
-# noinspection PyProtectedMember
-from pyspark import Row
 from pyspark.sql import DataFrame
-from pyspark.sql.types import StructField, ArrayType, StructType, DataType
+from pyspark.sql.types import StructField, ArrayType, StructType, DataType, Row
 
 from spark_data_frame_comparer.list_utils import diff_lists
 from spark_data_frame_comparer.spark_data_frame_comparer_exception import (
