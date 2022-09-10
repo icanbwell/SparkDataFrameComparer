@@ -128,8 +128,8 @@ class SchemaComparer:
             if i >= len(source_schema.names):
                 # nothing to match so skip
                 if (
-                    not desired_field.nullable or not allow_missing_nullable_properties
-                ) and not is_parent_nullable:
+                    not desired_field.nullable and not is_parent_nullable
+                ) or not allow_missing_nullable_properties:
                     errors.append(
                         SchemaCompareError(
                             column=f"{parent_column_name}.{desired_field.name}",
@@ -177,7 +177,7 @@ class SchemaComparer:
                             is_parent_nullable=is_parent_nullable,
                         )
                     )
-                elif not is_parent_nullable:
+                elif not is_parent_nullable or not allow_missing_nullable_properties:
                     errors.append(
                         SchemaCompareError(
                             column=f"{parent_column_name}.{desired_field.name}",
@@ -249,7 +249,7 @@ class SchemaComparer:
             desired_schema=desired_schema.elementType,
             schema_comparison=schema_comparison,
             allow_missing_nullable_properties=False,  # properties inside an array have to match exactly
-            is_parent_nullable=is_parent_nullable,
+            is_parent_nullable=False,  # properties inside an array have to match exactly
         )
 
     @staticmethod
