@@ -2,7 +2,6 @@ from pyspark.sql.types import (
     StructType,
     StructField,
     StringType,
-    IntegerType,
 )
 
 from spark_data_frame_comparer.schema_comparer import (
@@ -15,19 +14,15 @@ def test_schema_comparer_struct_to_struct_nullable_parent() -> None:
     print("")
     source_schema: StructType = StructType(
         [
-            StructField("name", StructType([StructField("given", StringType())])),
             StructField("nameNullable", StructType([])),
-            StructField("age", IntegerType()),
         ]
     )
     desired_schema: StructType = StructType(
         [
-            StructField("name", StructType([StructField("given", StringType())])),
             StructField(
                 "nameNullable",
                 StructType([StructField("given", StringType(), nullable=False)]),
             ),
-            StructField("age", IntegerType()),
         ]
     )
     result: SchemaComparerResult = SchemaComparer.compare_schema(

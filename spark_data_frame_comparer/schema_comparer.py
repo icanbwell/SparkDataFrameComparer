@@ -92,6 +92,7 @@ class SchemaComparer:
         desired_schema: StructType,
         schema_comparison: SchemaComparisonItem,
         allow_missing_nullable_properties: bool,
+        is_parent_nullable: bool,
     ) -> List[SchemaCompareError]:
         if isinstance(source_schema, NullType):
             return []
@@ -114,7 +115,9 @@ class SchemaComparer:
             # if destination field is nullable then it is fine if there is no source field
             if i >= len(source_schema.names):
                 # nothing to match so skip
-                if not desired_field.nullable or not allow_missing_nullable_properties:
+                if (
+                    not desired_field.nullable or not allow_missing_nullable_properties
+                ) and not is_parent_nullable:
                     errors.append(
                         SchemaCompareError(
                             column=f"{parent_column_name}.{desired_field.name}",
@@ -178,6 +181,7 @@ class SchemaComparer:
                     desired_schema=desired_field.dataType,
                     schema_comparison=schema_comparison,
                     allow_missing_nullable_properties=allow_missing_nullable_properties,
+                    is_parent_nullable=desired_field.nullable,
                 )
 
         # now check if source has extra columns
@@ -205,6 +209,7 @@ class SchemaComparer:
         desired_schema: ArrayType,
         schema_comparison: SchemaComparisonItem,
         allow_missing_nullable_properties: bool,
+        is_parent_nullable: bool,
     ) -> List[SchemaCompareError]:
         if isinstance(source_schema, NullType):
             return []
@@ -226,6 +231,7 @@ class SchemaComparer:
             desired_schema=desired_schema.elementType,
             schema_comparison=schema_comparison,
             allow_missing_nullable_properties=False,  # properties inside an array have to match exactly
+            is_parent_nullable=is_parent_nullable,
         )
 
     @staticmethod
@@ -235,6 +241,7 @@ class SchemaComparer:
         desired_schema: DataType,
         schema_comparison: SchemaComparisonItem,
         allow_missing_nullable_properties: bool,
+        is_parent_nullable: bool,
     ) -> List[SchemaCompareError]:
         if isinstance(source_schema, NullType):
             return []
@@ -272,6 +279,7 @@ class SchemaComparer:
         desired_schema: DataType,
         schema_comparison: SchemaComparisonItem,
         allow_missing_nullable_properties: bool,
+        is_parent_nullable: bool,
     ) -> List[SchemaCompareError]:
         if isinstance(desired_schema, StructType):
             return SchemaComparer.compare_struct(
@@ -280,6 +288,7 @@ class SchemaComparer:
                 desired_schema=desired_schema,
                 schema_comparison=schema_comparison,
                 allow_missing_nullable_properties=allow_missing_nullable_properties,
+                is_parent_nullable=is_parent_nullable,
             )
         elif isinstance(desired_schema, ArrayType):
             return SchemaComparer.compare_array(
@@ -288,6 +297,7 @@ class SchemaComparer:
                 desired_schema=desired_schema,
                 schema_comparison=schema_comparison,
                 allow_missing_nullable_properties=allow_missing_nullable_properties,
+                is_parent_nullable=is_parent_nullable,
             )
         else:
             return SchemaComparer.compare_simple(
@@ -296,6 +306,7 @@ class SchemaComparer:
                 desired_schema=desired_schema,
                 schema_comparison=schema_comparison,
                 allow_missing_nullable_properties=allow_missing_nullable_properties,
+                is_parent_nullable=is_parent_nullable,
             )
 
     @staticmethod
@@ -376,6 +387,7 @@ class SchemaComparer:
                 desired_schema=desired_schema,
                 schema_comparison=SchemaComparisonItem(),
                 allow_missing_nullable_properties=True,
+                is_parent_nullable=False,
             )
             # sort the errors by type
             result.errors = (
