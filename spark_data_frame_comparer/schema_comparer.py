@@ -60,8 +60,14 @@ class SchemaCompareError:
             + "source_schema: "
             + str(self.source_schema)
             + "\n"
+            + "source_schema json: "
+            + str(self.source_schema.json())
+            + "\n"
             + "desired_schema: "
             + str(self.desired_schema)
+            + "\n"
+            + "desired_schema json: "
+            + str(self.desired_schema.json())
             + "\n"
             + "is_parent_nullable: "
             + str(self.is_parent_nullable)
