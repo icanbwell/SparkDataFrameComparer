@@ -221,7 +221,7 @@ def assert_compare_data_frames(
         )
 
     # if everything worked then remove the compare file
-    if os.path.exists(str(compare_sh_path)):
+    if compare_sh_path and os.path.exists(str(compare_sh_path)):
         os.remove(str(compare_sh_path))
 
 
