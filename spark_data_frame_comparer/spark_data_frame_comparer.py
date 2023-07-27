@@ -259,7 +259,7 @@ def check_column_value(
                 f"Expected array in row:{row_num}, col:{column_num} to be {expected_value} "
                 f"but actual is {result_value}"
             ]
-        array_item: Row
+
         for array_item_index in range(0, len(result_value)):
             element_type: DataType = data_type_for_column.elementType
             result_array_item = result_value[array_item_index]
