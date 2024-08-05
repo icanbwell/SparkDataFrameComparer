@@ -23,6 +23,9 @@ RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys F23C5A6CF4
     update-alternatives --install /usr/bin/python python /usr/bin/python3.12 1 && \
     update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
 
+RUN pip install pyspark==3.3.0
+RUN pip install pytest>=8.2.2
+
 COPY . /sdc
 
 RUN df -h # for space monitoring
