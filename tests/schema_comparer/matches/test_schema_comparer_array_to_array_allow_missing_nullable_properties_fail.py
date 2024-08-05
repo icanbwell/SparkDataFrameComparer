@@ -6,7 +6,9 @@ from spark_data_frame_comparer.schema_comparer import (
 )
 
 
-def test_schema_comparer_array_to_array_allow_missing_nullable_properties_fail() -> None:
+def test_schema_comparer_array_to_array_allow_missing_nullable_properties_fail() -> (
+    None
+):
     print("")
     source_schema: StructType = StructType(
         [
