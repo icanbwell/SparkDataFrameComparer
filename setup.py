@@ -45,7 +45,7 @@ fix_setuptools()
 
 # create the package setup
 setup(
-    install_requires=["pyspark==3.3.0", "logger>=1.4"],
+    install_requires=["pyspark==3.5.1", "logger>=1.4"],
     name=package_name,
     version=version,
     author="Imran Qureshi",
