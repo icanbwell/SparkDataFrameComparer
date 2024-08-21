@@ -7,6 +7,6 @@ services:
       context: .
     image: sparkdataframecomparer_dev
     volumes:
-      - ./:/sam/
+      - ./:/sdc/
     container_name: sparkdataframecomparer_dev
-    working_dir: /sam
+    working_dir: /sdc
