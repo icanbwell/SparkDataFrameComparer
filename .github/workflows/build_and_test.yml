@@ -28,4 +28,32 @@ jobs:
       - name: up
         run: make up
       - name: tests
-        run: make tests
+        run: |
+          docker compose run --rm --name sdc_tests \
+            -v /home/runner/work/${{ github.repository }}/reports:/reports \
+            dev \
+            pytest \
+            --junitxml=/reports/pytest_report.xml
+            tests
+
+      - name: Surface failing tests
+        if: always()
+        uses: pmeier/pytest-results-action@main # https://github.com/pmeier/pytest-results-action
+        with:
+          # A list of JUnit XML files, directories containing the former, and wildcard
+          # patterns to process.
+          # See @actions/glob for supported patterns.
+          path: ./results/*.xml
+
+          # (Optional) Add a summary of the results at the top of the report
+          summary: true
+
+          # (Optional) Select which results should be included in the report.
+          # Follows the same syntax as `pytest -r`
+          display-options: fEX
+
+          # (Optional) Fail the workflow if no JUnit XML was found.
+          fail-on-empty: true
+
+          # (Optional) Title of the test results section in the workflow summary
+          title: Test results
