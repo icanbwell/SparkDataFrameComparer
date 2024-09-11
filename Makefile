@@ -39,10 +39,10 @@ run-pre-commit: setup-pre-commit
 	./.git/hooks/pre-commit
 
 .PHONY:update
-update: Pipfile.lock setup-pre-commit  ## Updates all the packages using Pipfile
-	docker compose run --rm --name sdc_pipenv dev pipenv sync --dev && \
+update: down Pipfile.lock setup-pre-commit  ## Updates all the packages using Pipfile
 	make devdocker && \
-	make pipenv-setup
+	make pipenv-setup && \
+	make up
 
 .PHONY:tests
 tests: up
@@ -58,9 +58,16 @@ sphinx-html:
 
 .PHONY:pipenv-setup
 pipenv-setup:devdocker ## Run pipenv-setup to update setup.py with latest dependencies
-	docker compose run --rm --name spark_data_frame_comparer dev sh -c "pipenv run pipenv install --skip-lock --categories \"pipenvsetup\" && pipenv run pipenv-setup sync --pipfile" && \
+	docker compose run --rm --name spark_dataframe_comparer dev sh -c "pipenv run pipenv install --skip-lock --categories \"pipenvsetup\" && pipenv run pipenv-setup sync --pipfile" && \
 	make run-pre-commit
 
 .PHONY:shell
 shell:devdocker ## Brings up the bash shell in dev docker
 	docker compose run --rm --name sdc_shell dev /bin/bash
+
+.PHONY:clean
+clean: down
+	find . -type d -name "__pycache__" | xargs rm -r
+	find . -type d -name "metastore_db" | xargs rm -r
+	find . -type f -name "derby.log" | xargs rm -r
+	find . -type d -name "temp" | xargs rm -r
