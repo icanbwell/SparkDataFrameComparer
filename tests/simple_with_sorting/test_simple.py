@@ -10,11 +10,12 @@ from spark_data_frame_comparer.spark_data_frame_comparer import (
 from tests.conftest import clean_spark_session
 
 
-def test_can_compare_simple(spark_session: SparkSession) -> None:
+def test_can_compare_simple_with_sorting(spark_session: SparkSession) -> None:
     # Arrange
     clean_spark_session(spark_session)
     data_dir: Path = Path(__file__).parent.joinpath("./")
     test_file_path: str = f"{data_dir.joinpath('input/complex.json')}"
+    expected_file_path: str = f"{data_dir.joinpath('expected/complex.json')}"
 
     temp_folder = data_dir.joinpath("./temp")
     if path.isdir(temp_folder):
@@ -22,7 +23,7 @@ def test_can_compare_simple(spark_session: SparkSession) -> None:
     mkdir(temp_folder)
 
     df1: DataFrame = spark_session.read.json(test_file_path)
-    df2: DataFrame = spark_session.read.json(test_file_path)
+    df2: DataFrame = spark_session.read.json(expected_file_path)
 
     # Act
     result_path = temp_folder.joinpath("result.json")
