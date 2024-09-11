@@ -6,14 +6,8 @@ import pytest
 
 # noinspection PyProtectedMember
 from _pytest._code import ExceptionInfo
-from pyspark.sql import SparkSession
-from pyspark.sql.types import (
-    StructType,
-    StructField,
-    IntegerType,
-    ArrayType,
-    StringType,
-)
+from pyspark.sql import SparkSession, DataFrame
+from pyspark.sql.functions import lit
 
 from spark_data_frame_comparer.spark_data_frame_comparer import (
     assert_compare_data_frames,
@@ -25,7 +19,7 @@ from spark_data_frame_comparer.spark_data_frame_comparer_exception import (
 from tests.conftest import clean_spark_session
 
 
-def test_simple_fail(spark_session: SparkSession) -> None:
+def test_simple_fail_schema(spark_session: SparkSession) -> None:
     # Arrange
     clean_spark_session(spark_session)
     data_dir: Path = Path(__file__).parent.joinpath("./")
@@ -36,45 +30,9 @@ def test_simple_fail(spark_session: SparkSession) -> None:
         rmtree(temp_folder)
     mkdir(temp_folder)
 
-    # Define the schema
-    schema = StructType(
-        [
-            StructField("simple_field", IntegerType(), True),
-            StructField(
-                "complex_field",
-                ArrayType(
-                    StructType(
-                        [
-                            StructField("inner_key_str", StringType(), True),
-                            StructField("inner_key_int", IntegerType(), True),
-                        ]
-                    )
-                ),
-                True,
-            ),
-        ]
-    )
-    # Define the data
-    # Create the DataFrame
-    df1 = spark_session.createDataFrame(
-        [
-            {
-                "simple_field": 1,
-                "complex_field": [{"inner_key_str": "test", "inner_key_int": 23}],
-            }
-        ],
-        schema,
-    )
-
-    df2 = spark_session.createDataFrame(
-        [
-            {
-                "simple_field": 2,
-                "complex_field": [{"inner_key_str": "test", "inner_key_int": 23}],
-            }
-        ],
-        schema,
-    )
+    df1: DataFrame = spark_session.read.json(test_file_path)
+    df2: DataFrame = spark_session.read.json(test_file_path)
+    df2 = df2.withColumn("simple_field", lit("1"))
 
     # Act
     result_path = temp_folder.joinpath("result.json")
