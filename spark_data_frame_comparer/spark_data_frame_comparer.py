@@ -12,6 +12,7 @@ from spark_data_frame_comparer.spark_data_frame_comparer_exception import (
     SparkDataFrameComparerException,
     ExceptionType,
 )
+from spark_data_frame_comparer.spark_data_frame_sorter import SparkDataFrameSorter
 
 
 def assert_compare_data_frames(
@@ -24,6 +25,7 @@ def assert_compare_data_frames(
     result_path: Optional[Union[Path, str]] = None,
     temp_folder: Optional[Union[Path, str]] = None,
     func_path_modifier: Optional[Callable[[Union[Path, str]], Union[Path, str]]] = None,
+    auto_sort: Optional[bool] = None,
 ) -> None:
     """
     Compare two data frames and throws an exception if there is any difference
@@ -37,6 +39,7 @@ def assert_compare_data_frames(
     :param expected_path:
     :param result_path:
     :param temp_folder:
+    :param auto_sort: whether to automatically sort each data frame deterministically
     :return:
     """
     if exclude_columns:
@@ -51,6 +54,10 @@ def assert_compare_data_frames(
 
     result_df = result_df.select(sorted(result_df.columns))
     expected_df = expected_df.select(sorted(expected_df.columns))
+
+    if auto_sort:
+        result_df = SparkDataFrameSorter.deterministic_sort(df=result_df)
+        expected_df = SparkDataFrameSorter.deterministic_sort(df=expected_df)
 
     compare_sh_path: Optional[Path] = None
     if expected_path and result_path and temp_folder:

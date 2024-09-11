@@ -36,4 +36,5 @@ def test_can_compare_simple_with_sorting(spark_session: SparkSession) -> None:
         expected_path=test_file_path,
         result_path=result_path,
         func_path_modifier=lambda x: x,
+        auto_sort=True,
     )
