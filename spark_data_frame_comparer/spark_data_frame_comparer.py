@@ -186,6 +186,7 @@ def assert_compare_data_frames(
             )
         for column_num in range(0, len(result_columns)):
             schema_for_column: StructField = column_schemas[column_num]
+            column_name: str = schema_for_column.name
             result_value = result_rows[row_num][column_num]
             expected_value = expected_rows[row_num][column_num]
             if (expected_value is None or expected_value == "") and (
@@ -202,7 +203,7 @@ def assert_compare_data_frames(
                 column_error_count: int
                 column_errors: List[str]
                 column_error_count, column_errors = check_column_value(
-                    column_num=column_num,
+                    column_name=column_name,
                     error_count=error_count,
                     expected_value=expected_value,
                     result_columns=result_columns,
@@ -249,7 +250,7 @@ def print_data_frame_info(expected_df: DataFrame, result_df: DataFrame) -> None:
 
 
 def check_column_value(
-    column_num: int,
+    column_name: str,
     error_count: int,
     expected_value: Any,
     result_columns: List[Tuple[str, str]],
@@ -263,7 +264,7 @@ def check_column_value(
             return error_count, []
         if result_value is None or expected_value is None:
             return error_count + 1, [
-                f"Expected array in row:{row_num}, col:{column_num} to be {expected_value} "
+                f"Expected array in row:{row_num}, col:{column_name} to be {expected_value} "
                 f"but actual is {result_value}"
             ]
 
@@ -272,7 +273,7 @@ def check_column_value(
             result_array_item = result_value[array_item_index]
             if len(expected_value) < array_item_index + 1:
                 return error_count + 1, [
-                    f"Expected row:{row_num}, col:{column_num} has only {len(expected_value)} "
+                    f"Expected row:{row_num}, col:{column_name} has only {len(expected_value)} "
                     f"items but Actual has > {array_item_index + 1}"
                 ]
             expected_array_item = expected_value[array_item_index]
@@ -280,7 +281,7 @@ def check_column_value(
                 column_error_count: int
                 column_errors: List[str]
                 column_error_count, column_errors = check_column_value(
-                    column_num=column_num,
+                    column_name=column_name,
                     error_count=error_count,
                     expected_value=expected_array_item,
                     result_value=result_array_item,
@@ -293,13 +294,11 @@ def check_column_value(
 
     elif isinstance(data_type_for_column, StructType):
         column_error_count, column_errors = check_struct(
-            column_num=column_num,
+            column_name=column_name,
             error_count=error_count,
             expected_value=expected_value,
             result_value=result_value,
-            result_columns=result_columns,
             row_num=row_num,
-            data_type_for_column=data_type_for_column,
         )
         error_count += column_error_count
         my_errors = my_errors + column_errors
@@ -309,7 +308,7 @@ def check_column_value(
             expected_value=expected_value,
             result_value=result_value,
             row_num=row_num,
-            column_value=result_columns[column_num][0],
+            column_value=[r for r in result_columns if r[0] == column_name][0],
         )
         error_count += column_error_count
         my_errors = my_errors + column_errors
@@ -317,20 +316,18 @@ def check_column_value(
 
 
 def check_struct(
-    column_num: int,
+    column_name: str,
     error_count: int,
     expected_value: Row,
     result_value: Row,
-    result_columns: List[Tuple[str, str]],
     row_num: int,
-    data_type_for_column: StructType,
 ) -> Tuple[int, List[str]]:
     if expected_value is None and result_value is None:
         return error_count, []
     if result_value is None or expected_value is None:
         error_count += 1
         return error_count, [
-            f"Expected struct in row:{row_num}, col:{column_num} to be {expected_value} "
+            f"Expected struct in row:{row_num}, col:{column_name} to be {expected_value} "
             f"but actual is {result_value}"
         ]
     result_dict: Dict[str, Any] = result_value.asDict(recursive=True)
@@ -338,7 +335,7 @@ def check_struct(
     normalize_dictionaries(d1=result_dict, d2=expected_dict)
     if result_dict != expected_dict:
         return error_count + 1, [
-            f"Expected struct in row:{row_num}, col:{column_num} to be {expected_dict} "
+            f"Expected struct in row:{row_num}, col:{column_name} to be {expected_dict} "
             f"but actual is {result_dict}"
         ]
     return error_count, []
