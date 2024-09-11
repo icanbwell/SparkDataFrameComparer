@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 from math import isnan
 from pathlib import Path
-from typing import List, Any, Tuple, Optional, Union, Callable
+from typing import List, Any, Tuple, Optional, Union, Callable, Dict
 
 from pyspark.sql import DataFrame
 from pyspark.sql.types import StructField, ArrayType, StructType, DataType, Row
@@ -333,32 +333,15 @@ def check_struct(
             f"Expected struct in row:{row_num}, col:{column_num} to be {expected_value} "
             f"but actual is {result_value}"
         ]
-    if len(result_value) != len(expected_value):
+    result_dict: Dict[str, Any] = result_value.asDict(recursive=True)
+    expected_dict: Dict[str, Any] = expected_value.asDict(recursive=True)
+    normalize_dictionaries(d1=result_dict, d2=expected_dict)
+    if result_dict != expected_dict:
         return error_count + 1, [
-            f"Expected struct in row:{row_num}, col:{column_num} to be {expected_value} "
-            f"but actual is {result_value}"
+            f"Expected struct in row:{row_num}, col:{column_num} to be {expected_dict} "
+            f"but actual is {result_dict}"
         ]
-    my_errors: List[str] = []
-    for struct_item_index in range(0, len(result_value)):
-        result_struct_item = result_value[struct_item_index]
-        expected_struct_item = expected_value[struct_item_index]
-        struct_item_type: DataType = data_type_for_column.fields[
-            struct_item_index
-        ].dataType
-        column_error_count: int
-        column_errors: List[str]
-        column_error_count, column_errors = check_column_value(
-            column_num=column_num,
-            error_count=error_count,
-            expected_value=expected_struct_item,
-            result_value=result_struct_item,
-            result_columns=result_columns,
-            row_num=row_num,
-            data_type_for_column=struct_item_type,
-        )
-        error_count += column_error_count
-        my_errors = my_errors + column_errors
-    return error_count, my_errors
+    return error_count, []
 
 
 def check_column_simple_value(
@@ -399,3 +382,25 @@ def compare_scalar(
             microsecond=0
         )
     return result_value == expected_value
+
+
+def normalize_dictionaries(d1: Dict[str, Any], d2: Dict[str, Any]) -> None:
+    """
+    Recursively adds missing keys with value None in both dictionaries.
+    If a key is present in one dictionary with None value and missing in the other, they are treated as equal.
+    """
+    all_keys = set(d1.keys()).union(
+        set(d2.keys())
+    )  # Get all keys from both dictionaries
+
+    for key in all_keys:
+        # If the key is missing in d1 but present in d2, add it to d1 with None
+        if key not in d1:
+            d1[key] = None
+        # If the key is missing in d2 but present in d1, add it to d2 with None
+        if key not in d2:
+            d2[key] = None
+
+        # Recursively normalize nested dictionaries
+        if isinstance(d1[key], dict) and isinstance(d2[key], dict):
+            normalize_dictionaries(d1[key], d2[key])
