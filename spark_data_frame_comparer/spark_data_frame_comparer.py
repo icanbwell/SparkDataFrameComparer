@@ -258,6 +258,7 @@ def check_column_value(
     row_num: int,
     data_type_for_column: DataType,
 ) -> Tuple[int, List[str]]:
+    assert isinstance(column_name, str)
     my_errors: List[str] = []
     if isinstance(data_type_for_column, ArrayType):
         if result_value is None and expected_value is None:
@@ -308,7 +309,7 @@ def check_column_value(
             expected_value=expected_value,
             result_value=result_value,
             row_num=row_num,
-            column_value=[r for r in result_columns if r[0] == column_name][0],
+            column_name=column_name,
         )
         error_count += column_error_count
         my_errors = my_errors + column_errors
@@ -322,6 +323,7 @@ def check_struct(
     result_value: Row,
     row_num: int,
 ) -> Tuple[int, List[str]]:
+    assert isinstance(column_name, str)
     if expected_value is None and result_value is None:
         return error_count, []
     if result_value is None or expected_value is None:
@@ -342,12 +344,13 @@ def check_struct(
 
 
 def check_column_simple_value(
+    column_name: str,
     error_count: int,
     expected_value: Any,
     result_value: Any,
     row_num: int,
-    column_value: Any,
 ) -> Tuple[int, List[str]]:
+    assert isinstance(column_name, str)
     result_isnan = (
         isinstance(result_value, float)
         and isinstance(expected_value, float)
@@ -363,7 +366,7 @@ def check_column_simple_value(
     ):
         error_count += 1
         return error_count + 1, [
-            f"row {row_num}: column {column_value} "
+            f"row {row_num}: column {column_name} "
             + f"expected: [{expected_value}] actual: [{result_value}]"
         ]
     return error_count, []

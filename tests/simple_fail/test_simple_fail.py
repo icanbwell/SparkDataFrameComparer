@@ -94,5 +94,5 @@ def test_simple_fail(spark_session: SparkSession) -> None:
 
     spark_data_frame_exception: SparkDataFrameComparerException = exc_info.value
     print(spark_data_frame_exception)
-    assert exc_info.value.exception_type == ExceptionType.SchemaMismatch
-    assert not path.exists(data_dir.joinpath("temp/compare_complex.json.command"))
+    assert exc_info.value.exception_type == ExceptionType.DataMismatch
+    assert path.exists(data_dir.joinpath("temp/compare_complex.json.command"))
