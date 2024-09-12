@@ -12,6 +12,27 @@ from spark_data_frame_comparer.spark_data_frame_exception_type import ExceptionT
 
 class SparkDataFrameComparerHelper:
     @staticmethod
+    def check_data_frame(
+        *,
+        column_name: str,
+        error_count: int,
+        expected_value: Any,
+        result_columns: List[Tuple[str, str]],
+        result_value: Any,
+        row_num: int,
+        data_type_for_column: DataType,
+    ) -> Tuple[int, List[SparkDataFrameError]]:
+        return SparkDataFrameComparerHelper.check_column_value(
+            column_name=column_name,
+            error_count=error_count,
+            expected_value=expected_value,
+            result_columns=result_columns,
+            result_value=result_value,
+            row_num=row_num,
+            data_type_for_column=data_type_for_column,
+        )
+
+    @staticmethod
     def check_column_value(
         *,
         column_name: str,
