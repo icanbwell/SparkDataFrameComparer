@@ -46,7 +46,7 @@ jobs:
             -o junit_logging=all -o junit_log_passing_tests=false \
             --tb=long \
             --durations=10 \
-            --junitxml=/reports/pytest_report.xml > /reports/pytest_output.log
+            --junitxml=/reports/pytest_report.xml > /home/runner/work/${{ github.repository }}/reports/pytest_output.log
 
       - name: list pytest report
         if: ${{ always() }}
