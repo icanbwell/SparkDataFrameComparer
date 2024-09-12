@@ -52,7 +52,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: pytest-output
+          name: pytest-report
           path: /home/runner/work/${{ github.repository }}/reports/pytest_report.xml
 
       - name: Surface failing tests
