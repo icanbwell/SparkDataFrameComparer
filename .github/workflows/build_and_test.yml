@@ -33,6 +33,7 @@ jobs:
             -v /home/runner/work/${{ github.repository }}/reports:/reports \
             dev \
             pytest \
+            --capture=fd \
             --log-cli-level=INFO \
             --log-file=/reports/pytest_output_core.log --log-file-level=INFO \
             --tb=long \
