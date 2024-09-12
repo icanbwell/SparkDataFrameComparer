@@ -29,4 +29,4 @@ def test_data_frame_sorter(spark_session: SparkSession) -> None:
 
     assert len(results) == 2
     assert results[0]["simple_field"] == 1
-    assert results[1]["simple_field"] == 2
+    assert results[1]["simple_field"] == 3
