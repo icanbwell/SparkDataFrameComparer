@@ -4,9 +4,8 @@ from typing import List, Any, Tuple, Union, Dict
 
 from pyspark.sql.types import ArrayType, StructType, DataType, Row, StructField
 
-from spark_data_frame_comparer.spark_data_frame_error import (
-    SparkDataFrameError,
-)
+# Custom error classes to handle dataframe comparison errors
+from spark_data_frame_comparer.spark_data_frame_error import SparkDataFrameError
 from spark_data_frame_comparer.spark_data_frame_exception_type import ExceptionType
 
 
@@ -22,9 +21,12 @@ class SparkDataFrameComparerHelper:
         result_rows: List[Row],
         row_num: int,
     ) -> Tuple[int, List[SparkDataFrameError]]:
-        result_column_num: int
-        result_column_name: str
-        result_schema_for_column: StructField
+        """
+        Compares rows of the result DataFrame with expected rows and identifies mismatches.
+        Returns the updated error count and a list of identified errors.
+        """
+
+        # Iterate over each column in the result dataframe schema
         for result_column_num, (
             result_column_name,
             result_schema_for_column,
@@ -32,12 +34,16 @@ class SparkDataFrameComparerHelper:
             column_name: str = result_schema_for_column.name
             result_value = result_rows[row_num][result_column_num]
             expected_value = expected_rows[row_num][result_column_num]
+
+            # Check if both expected and result values are None or empty, and skip if true
             if (expected_value is None or expected_value == "") and (
                 result_value is None or result_value == ""
             ):
                 pass
+            # Handle case where one value is None but not the other
             elif result_value is None or expected_value is None:
                 error_count += 1
+                # Append error for mismatch
                 my_errors.append(
                     SparkDataFrameError(
                         exception_type=ExceptionType.DataMismatch,
@@ -48,8 +54,7 @@ class SparkDataFrameComparerHelper:
                     )
                 )
             else:
-                column_error_count: int
-                column_errors: List[SparkDataFrameError]
+                # Check the individual column value and accumulate any column-specific errors
                 column_error_count, column_errors = (
                     SparkDataFrameComparerHelper.check_column_value(
                         column_name=column_name,
@@ -62,7 +67,8 @@ class SparkDataFrameComparerHelper:
                     )
                 )
                 error_count += column_error_count
-                my_errors = my_errors + column_errors
+                my_errors.extend(column_errors)
+
         return error_count, my_errors
 
     @staticmethod
@@ -76,11 +82,17 @@ class SparkDataFrameComparerHelper:
         row_num: int,
         data_type_for_column: DataType,
     ) -> Tuple[int, List[SparkDataFrameError]]:
-        assert isinstance(column_name, str)
+        """
+        Compares the values in a column and returns any mismatch errors.
+        Handles complex data types like arrays and structs.
+        """
         my_errors: List[SparkDataFrameError] = []
+
+        # If the column is an array, handle comparison for array elements
         if isinstance(data_type_for_column, ArrayType):
             if result_value is None and expected_value is None:
                 return error_count, []
+
             if result_value is None or expected_value is None:
                 return error_count + 1, [
                     SparkDataFrameError(
@@ -92,9 +104,12 @@ class SparkDataFrameComparerHelper:
                     )
                 ]
 
-            for array_item_index in range(0, len(result_value)):
+            # Compare each element in the array
+            for array_item_index in range(len(result_value)):
                 element_type: DataType = data_type_for_column.elementType
                 result_array_item = result_value[array_item_index]
+
+                # If the expected array is shorter than the result array, log an error
                 if len(expected_value) < array_item_index + 1:
                     return error_count + 1, [
                         SparkDataFrameError(
@@ -105,10 +120,11 @@ class SparkDataFrameComparerHelper:
                             f"items but Actual has > {array_item_index + 1}",
                         )
                     ]
+
                 expected_array_item = expected_value[array_item_index]
+
+                # Handle nested structures like Rows within arrays
                 if isinstance(result_array_item, Row):
-                    column_error_count: int
-                    column_errors: List[SparkDataFrameError]
                     column_error_count, column_errors = (
                         SparkDataFrameComparerHelper.check_column_value(
                             column_name=column_name,
@@ -121,8 +137,9 @@ class SparkDataFrameComparerHelper:
                         )
                     )
                     error_count += column_error_count
-                    my_errors = my_errors + column_errors
+                    my_errors.extend(column_errors)
 
+        # Handle StructType comparison (nested columns)
         elif isinstance(data_type_for_column, StructType):
             column_error_count, column_errors = (
                 SparkDataFrameComparerHelper.check_struct(
@@ -136,7 +153,9 @@ class SparkDataFrameComparerHelper:
                 )
             )
             error_count += column_error_count
-            my_errors = my_errors + column_errors
+            my_errors.extend(column_errors)
+
+        # Handle simple data types like int, float, string, etc.
         else:
             column_error_count, column_errors = (
                 SparkDataFrameComparerHelper.check_column_simple_value(
@@ -148,7 +167,8 @@ class SparkDataFrameComparerHelper:
                 )
             )
             error_count += column_error_count
-            my_errors = my_errors + column_errors
+            my_errors.extend(column_errors)
+
         return error_count, my_errors
 
     @staticmethod
@@ -162,9 +182,12 @@ class SparkDataFrameComparerHelper:
         row_num: int,
         data_type_for_column: StructType,
     ) -> Tuple[int, List[SparkDataFrameError]]:
-        assert isinstance(column_name, str)
+        """
+        Compares values of a struct (nested columns) and accumulates errors.
+        """
         if expected_value is None and result_value is None:
             return error_count, []
+
         if result_value is None or expected_value is None:
             error_count += 1
             return error_count, [
@@ -178,15 +201,17 @@ class SparkDataFrameComparerHelper:
             ]
 
         my_errors: List[SparkDataFrameError] = []
-        for struct_item_index in range(0, len(result_value)):
+
+        # Iterate through each field of the struct and compare the fields
+        for struct_item_index in range(len(result_value)):
             result_struct_item = result_value[struct_item_index]
             expected_struct_item = expected_value[struct_item_index]
             struct_item_type: StructField = data_type_for_column.fields[
                 struct_item_index
             ]
             struct_item_data_type: DataType = struct_item_type.dataType
-            column_error_count: int
-            column_errors: List[SparkDataFrameError]
+
+            # Recursively compare nested structs
             column_error_count, column_errors = (
                 SparkDataFrameComparerHelper.check_column_value(
                     column_name=f"{column_name}.{struct_item_type.name}",
@@ -199,7 +224,8 @@ class SparkDataFrameComparerHelper:
                 )
             )
             error_count += column_error_count
-            my_errors = my_errors + column_errors
+            my_errors.extend(column_errors)
+
         return error_count, my_errors
 
     @staticmethod
@@ -211,15 +237,17 @@ class SparkDataFrameComparerHelper:
         result_value: Any,
         row_num: int,
     ) -> Tuple[int, List[SparkDataFrameError]]:
-        assert isinstance(column_name, str)
+        """
+        Compares simple column values like strings, ints, or floats.
+        Handles special cases like NaN values.
+        """
         result_isnan = (
             isinstance(result_value, float)
             and isinstance(expected_value, float)
             and (isnan(result_value) == isnan(expected_value))
         )
-        # if result does not match
-        #   and result is not NaN
-        #   and both result and expected are not false
+
+        # Check if the scalar values are equal; consider NaN as equal
         if (
             not SparkDataFrameComparerHelper.compare_scalar(
                 expected_value=expected_value, result_value=result_value
@@ -237,6 +265,7 @@ class SparkDataFrameComparerHelper:
                     f"but actual is {result_value}",
                 )
             ]
+
         return error_count, []
 
     @staticmethod
@@ -245,7 +274,9 @@ class SparkDataFrameComparerHelper:
         expected_value: Union[int, float, bool, str],
         result_value: Union[int, float, bool, str],
     ) -> bool:
-        # for datetime lose the microseconds when comparing
+        """
+        Compares scalar values, special handling for datetime to ignore microseconds.
+        """
         if isinstance(expected_value, datetime) and isinstance(result_value, datetime):
             return expected_value.replace(microsecond=0) == result_value.replace(
                 microsecond=0
@@ -256,17 +287,17 @@ class SparkDataFrameComparerHelper:
     def normalize_dictionaries(d1: Dict[str, Any], d2: Dict[str, Any]) -> None:
         """
         Recursively adds missing keys with value None in both dictionaries.
-        If a key is present in one dictionary with None value and missing in the other, they are treated as equal.
+        If a key is present in one dictionary but not the other, it adds the missing key with value None.
         """
         all_keys = set(d1.keys()).union(
             set(d2.keys())
         )  # Get all keys from both dictionaries
 
         for key in all_keys:
-            # If the key is missing in d1 but present in d2, add it to d1 with None
+            # Add missing key with None in d1 if it exists in d2 but not in d1
             if key not in d1:
                 d1[key] = None
-            # If the key is missing in d2 but present in d1, add it to d2 with None
+            # Add missing key with None in d2 if it exists in d1 but not in d2
             if key not in d2:
                 d2[key] = None
 
