@@ -14,6 +14,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Create directory and set permissions
+        run: |
+          sudo mkdir -p /home/runner/work/${{ github.repository }}
+          sudo chown -R runner:runner /home/runner/work/${{ github.repository }}
+          sudo chmod 777 /home/runner/work/${{ github.repository }}
+
+      - name: Create reports output folder
+        run: mkdir -p /home/runner/work/${{ github.repository }}/reports
+
       # Checks-out your repository
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -39,6 +48,7 @@ jobs:
             --durations=10 \
             tests \
             --junitxml=/reports/pytest_report.xml
+          ls /home/runner/work/${{ github.repository }}/reports/
 
       - name: list pytest report
         if: ${{ always() }}
