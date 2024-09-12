@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import List, Tuple, Optional, Union, Callable
+from typing import List, Tuple, Optional, Union, Callable, Dict
 
 from pyspark.sql import DataFrame
 from pyspark.sql.types import StructField, Row
@@ -168,7 +168,12 @@ def assert_compare_data_frames(
             additional_info="",
             func_path_modifier=func_path_modifier,
         )
-    column_schemas: List[StructField] = [t for t in result_df.schema]
+    # expected_column_schemas: Dict[str, StructField] = {
+    #     t.name: t for t in expected_df.schema
+    # }
+    result_column_schemas: Dict[str, StructField] = {
+        t.name: t for t in result_df.schema
+    }
     my_errors: List[SparkDataFrameError] = []
     for row_num in range(0, len(result_rows)):
         if len(expected_rows[row_num]) != len(result_rows[row_num]):
@@ -188,11 +193,17 @@ def assert_compare_data_frames(
                 additional_info="",
                 func_path_modifier=func_path_modifier,
             )
-        for column_num in range(0, len(result_columns)):
-            schema_for_column: StructField = column_schemas[column_num]
-            column_name: str = schema_for_column.name
-            result_value = result_rows[row_num][column_num]
-            expected_value = expected_rows[row_num][column_num]
+
+        result_column_num: int
+        result_column_name: str
+        result_schema_for_column: StructField
+        for result_column_num, (
+            result_column_name,
+            result_schema_for_column,
+        ) in enumerate(result_column_schemas.items()):
+            column_name: str = result_schema_for_column.name
+            result_value = result_rows[row_num][result_column_num]
+            expected_value = expected_rows[row_num][result_column_num]
             if (expected_value is None or expected_value == "") and (
                 result_value is None or result_value == ""
             ):
@@ -204,7 +215,7 @@ def assert_compare_data_frames(
                         exception_type=ExceptionType.DataMismatch,
                         result=str(result_value),
                         expected=str(expected_value),
-                        message=f"row {row_num}: column {column_num} "
+                        message=f"row {row_num}: column {result_column_name} "
                         f"expected: [{expected_value}] actual: [{result_value}]",
                     )
                 )
@@ -219,7 +230,7 @@ def assert_compare_data_frames(
                         result_columns=result_columns,
                         result_value=result_value,
                         row_num=row_num,
-                        data_type_for_column=schema_for_column.dataType,
+                        data_type_for_column=result_schema_for_column.dataType,
                     )
                 )
                 error_count += column_error_count
