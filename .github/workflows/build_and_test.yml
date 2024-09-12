@@ -40,8 +40,8 @@ jobs:
             -o junit_logging=all -o junit_log_passing_tests=false \
             --tb=long \
             --durations=10 \
-            tests \
             --junitxml=/reports/pytest_report.xml
+            tests
 
       - name: Upload test output
         # Use always() to always run this step to publish test results when there are test failures
@@ -82,7 +82,7 @@ jobs:
           title: Test results
 
       - name: Publish test results
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@v1  # https://github.com/dorny/test-reporter
         if: ${{ always() }}
         with:
           name: Pytest Summary
