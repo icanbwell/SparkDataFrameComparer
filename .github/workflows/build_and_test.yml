@@ -33,8 +33,9 @@ jobs:
             -v /home/runner/work/${{ github.repository }}/reports:/reports \
             dev \
             pytest \
-            --log-cli-level=INFO --log-file=/reports/pytest_output_core.log --log-file-level=INFO \
-            --tb=long --capture=no \
+            --log-cli-level=INFO \
+            --log-file=/reports/pytest_output_core.log --log-file-level=INFO \
+            --tb=long \
             --durations=10 \
             tests \
             --junitxml=/reports/pytest_report.xml
