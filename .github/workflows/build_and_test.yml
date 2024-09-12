@@ -33,8 +33,27 @@ jobs:
             -v /home/runner/work/${{ github.repository }}/reports:/reports \
             dev \
             pytest \
+            --log-cli-level=INFO --log-file=/reports/pytest_output_core.log --log-file-level=INFO \
+            --tb=long --capture=no \
+            --durations=10 \
             tests \
             --junitxml=/reports/pytest_report.xml
+
+      - name: Upload test output
+        # Use always() to always run this step to publish test results when there are test failures
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-output
+          path: /home/runner/work/${{ github.repository }}/reports/pytest_output_core.log
+
+      - name: Upload test report
+        # Use always() to always run this step to publish test results when there are test failures
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-output
+          path: /home/runner/work/${{ github.repository }}/reports/pytest_report.xml
 
       - name: Surface failing tests
         if: always()
@@ -43,7 +62,7 @@ jobs:
           # A list of JUnit XML files, directories containing the former, and wildcard
           # patterns to process.
           # See @actions/glob for supported patterns.
-          path: ./reports/*.xml
+          path: /home/runner/work/${{ github.repository }}/reports/*.xml
 
           # (Optional) Add a summary of the results at the top of the report
           summary: true
