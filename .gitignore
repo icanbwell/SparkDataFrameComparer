@@ -132,3 +132,4 @@ dmypy.json
 /**/metastore_db/
 **/.DS_Store
 /tests/**/temp/
+/reports/

@@ -48,6 +48,20 @@ update: down Pipfile.lock setup-pre-commit  ## Updates all the packages using Pi
 tests: up
 	docker compose run --rm --name sdc_tests dev pytest tests
 
+.PHONY: test-logs
+test-logs: up
+	docker compose run --rm --name sdc_tests \
+		dev \
+		pytest \
+		--capture=fd \
+		--log-cli-level=INFO \
+		--log-file=/reports/pytest_output_core.log --log-file-level=INFO \
+		-o junit_logging=all -o junit_log_passing_tests=false \
+		--tb=long \
+		--durations=10 \
+		tests \
+		--junitxml=/reports/pytest_report.xml
+
 .PHONY: sphinx-html
 sphinx-html:
 	docker compose run --rm --name spark_dataframe_comparer dev make -C docsrc html
