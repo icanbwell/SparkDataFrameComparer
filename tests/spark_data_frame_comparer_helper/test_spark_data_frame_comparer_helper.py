@@ -45,7 +45,6 @@ def test_check_data_frame_no_errors(
     setup_result_rows: List[Row],
 ) -> None:
     my_errors: List[SparkDataFrameError] = []
-    error_count: int = 0
 
     result_columns: List[Tuple[str, str]] = [
         ("name", "string"),
@@ -53,8 +52,7 @@ def test_check_data_frame_no_errors(
         ("scores", "array<int>"),
     ]
 
-    error_count, my_errors = SparkDataFrameComparerHelper.check_data_frame(
-        error_count=error_count,
+    my_errors = SparkDataFrameComparerHelper.check_data_frame(
         expected_rows=setup_expected_rows,
         my_errors=my_errors,
         result_column_schemas=setup_schema,
@@ -63,7 +61,6 @@ def test_check_data_frame_no_errors(
         row_num=0,
     )
 
-    assert error_count == 0
     assert len(my_errors) == 0
 
 
@@ -73,7 +70,6 @@ def test_check_data_frame_with_errors(
     setup_result_rows: List[Row],
 ) -> None:
     my_errors: List[SparkDataFrameError] = []
-    error_count: int = 0
 
     result_columns: List[Tuple[str, str]] = [
         ("name", "string"),
@@ -81,8 +77,7 @@ def test_check_data_frame_with_errors(
         ("scores", "array<int>"),
     ]
 
-    error_count, my_errors = SparkDataFrameComparerHelper.check_data_frame(
-        error_count=error_count,
+    my_errors = SparkDataFrameComparerHelper.check_data_frame(
         expected_rows=setup_expected_rows,
         my_errors=my_errors,
         result_column_schemas=setup_schema,
@@ -96,15 +91,13 @@ def test_check_data_frame_with_errors(
 
 
 def test_check_column_value_with_scalar() -> None:
-    error_count: int = 0
     expected_value: int = 25
     result_value: int = 26
     row_num: int = 1
     column_name: str = "age"
 
-    error_count, errors = SparkDataFrameComparerHelper.check_column_simple_value(
+    errors = SparkDataFrameComparerHelper.check_column_simple_value(
         column_name=column_name,
-        error_count=error_count,
         expected_value=expected_value,
         result_value=result_value,
         row_num=row_num,
@@ -115,16 +108,14 @@ def test_check_column_value_with_scalar() -> None:
 
 
 def test_check_array_value() -> None:
-    error_count: int = 0
     expected_value: List[int] = [80, 90]
     result_value: List[int] = [80, 85]  # Mismatch in the second element
     row_num: int = 1
     column_name: str = "scores"
     data_type: ArrayType = ArrayType(IntegerType())
 
-    error_count, errors = SparkDataFrameComparerHelper.check_column_value(
+    errors = SparkDataFrameComparerHelper.check_column_value(
         column_name=column_name,
-        error_count=error_count,
         expected_value=expected_value,
         result_columns=[],
         result_value=result_value,
@@ -139,7 +130,6 @@ def test_check_array_value() -> None:
 
 
 def test_check_struct_value() -> None:
-    error_count: int = 0
     expected_value: Row = Row(name="John", age=30)
     result_value: Row = Row(name="John", age=31)  # Mismatch in age
     row_num: int = 0
@@ -148,9 +138,8 @@ def test_check_struct_value() -> None:
         [StructField("name", StringType()), StructField("age", IntegerType())]
     )
 
-    error_count, errors = SparkDataFrameComparerHelper.check_struct(
+    errors = SparkDataFrameComparerHelper.check_struct(
         column_name=column_name,
-        error_count=error_count,
         expected_value=expected_value,
         result_value=result_value,
         result_columns=[],

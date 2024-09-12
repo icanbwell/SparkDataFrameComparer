@@ -13,20 +13,18 @@ class SparkDataFrameComparerHelper:
     @staticmethod
     def check_data_frame(
         *,
-        error_count: int,
         expected_rows: List[Row],
         my_errors: List[SparkDataFrameError],
         result_column_schemas: Dict[str, StructField],
         result_columns: List[Tuple[str, str]],
         result_rows: List[Row],
         row_num: int,
-    ) -> Tuple[int, List[SparkDataFrameError]]:
+    ) -> List[SparkDataFrameError]:
         """
         Compares rows of the result DataFrame with expected rows and identifies mismatches.
         Returns the updated error count and a list of identified errors.
 
 
-        :param error_count: The current error count.
         :param expected_rows: The list of expected rows.
         :param my_errors: The list of errors identified so far.
         :param result_column_schemas: The schema of the result DataFrame.
@@ -52,7 +50,6 @@ class SparkDataFrameComparerHelper:
                 pass
             # Handle case where one value is None but not the other
             elif result_value is None or expected_value is None:
-                error_count += 1
                 # Append error for mismatch
                 my_errors.append(
                     SparkDataFrameError(
@@ -65,40 +62,34 @@ class SparkDataFrameComparerHelper:
                 )
             else:
                 # Check the individual column value and accumulate any column-specific errors
-                column_error_count, column_errors = (
-                    SparkDataFrameComparerHelper.check_column_value(
-                        column_name=column_name,
-                        error_count=error_count,
-                        expected_value=expected_value,
-                        result_columns=result_columns,
-                        result_value=result_value,
-                        row_num=row_num,
-                        data_type_for_column=result_schema_for_column.dataType,
-                    )
+                column_errors = SparkDataFrameComparerHelper.check_column_value(
+                    column_name=column_name,
+                    expected_value=expected_value,
+                    result_columns=result_columns,
+                    result_value=result_value,
+                    row_num=row_num,
+                    data_type_for_column=result_schema_for_column.dataType,
                 )
-                error_count += column_error_count
                 my_errors.extend(column_errors)
 
-        return error_count, my_errors
+        return my_errors
 
     @staticmethod
     def check_column_value(
         *,
         column_name: str,
-        error_count: int,
         expected_value: Any,
         result_columns: List[Tuple[str, str]],
         result_value: Any,
         row_num: int,
         data_type_for_column: DataType,
-    ) -> Tuple[int, List[SparkDataFrameError]]:
+    ) -> List[SparkDataFrameError]:
         """
         Compares the values in a column and returns any mismatch errors.
         Handles complex data types like arrays and structs.
 
 
         :param column_name: The name of the column being compared.
-        :param error_count: The current error count.
         :param expected_value: The expected value in the column.
         :param result_columns: The list of column names and types.
         :param result_value: The actual value in the column.
@@ -111,10 +102,10 @@ class SparkDataFrameComparerHelper:
         # If the column is an array, handle comparison for array elements
         if isinstance(data_type_for_column, ArrayType):
             if result_value is None and expected_value is None:
-                return error_count, []
+                return []
 
             if result_value is None or expected_value is None:
-                return error_count + 1, [
+                return [
                     SparkDataFrameError(
                         exception_type=ExceptionType.DataMismatch,
                         result=str(result_value),
@@ -131,7 +122,7 @@ class SparkDataFrameComparerHelper:
 
                 # If the expected array is shorter than the result array, log an error
                 if len(expected_value) < array_item_index + 1:
-                    return error_count + 1, [
+                    return [
                         SparkDataFrameError(
                             exception_type=ExceptionType.DataMismatch,
                             result=str(result_value),
@@ -145,82 +136,66 @@ class SparkDataFrameComparerHelper:
 
                 # Handle nested structures like Rows within arrays
                 if isinstance(result_array_item, Row):
-                    column_error_count, column_errors = (
-                        SparkDataFrameComparerHelper.check_column_value(
-                            column_name=column_name,
-                            error_count=error_count,
-                            expected_value=expected_array_item,
-                            result_value=result_array_item,
-                            result_columns=result_columns,
-                            row_num=row_num,
-                            data_type_for_column=element_type,
-                        )
+                    column_errors = SparkDataFrameComparerHelper.check_column_value(
+                        column_name=column_name,
+                        expected_value=expected_array_item,
+                        result_value=result_array_item,
+                        result_columns=result_columns,
+                        row_num=row_num,
+                        data_type_for_column=element_type,
                     )
-                    error_count += column_error_count
                     my_errors.extend(column_errors)
                 else:
                     # Compare simple data types like int, float, string, etc.
-                    column_error_count, column_errors = (
+                    column_errors = (
                         SparkDataFrameComparerHelper.check_column_simple_value(
                             column_name=f"{column_name}[{array_item_index}]",
-                            error_count=error_count,
                             expected_value=expected_array_item,
                             result_value=result_array_item,
                             row_num=row_num,
                         )
                     )
-                    error_count += column_error_count
                     my_errors.extend(column_errors)
 
         # Handle StructType comparison (nested columns)
         elif isinstance(data_type_for_column, StructType):
-            column_error_count, column_errors = (
-                SparkDataFrameComparerHelper.check_struct(
-                    column_name=column_name,
-                    error_count=error_count,
-                    expected_value=expected_value,
-                    result_value=result_value,
-                    row_num=row_num,
-                    data_type_for_column=data_type_for_column,
-                    result_columns=result_columns,
-                )
+            column_errors = SparkDataFrameComparerHelper.check_struct(
+                column_name=column_name,
+                expected_value=expected_value,
+                result_value=result_value,
+                row_num=row_num,
+                data_type_for_column=data_type_for_column,
+                result_columns=result_columns,
             )
-            error_count += column_error_count
             my_errors.extend(column_errors)
 
         # Handle simple data types like int, float, string, etc.
         else:
-            column_error_count, column_errors = (
-                SparkDataFrameComparerHelper.check_column_simple_value(
-                    error_count=error_count,
-                    expected_value=expected_value,
-                    result_value=result_value,
-                    row_num=row_num,
-                    column_name=column_name,
-                )
+            column_errors = SparkDataFrameComparerHelper.check_column_simple_value(
+                expected_value=expected_value,
+                result_value=result_value,
+                row_num=row_num,
+                column_name=column_name,
             )
-            error_count += column_error_count
             my_errors.extend(column_errors)
 
-        return error_count, my_errors
+        return my_errors
 
     @staticmethod
     def check_struct(
         *,
         column_name: str,
-        error_count: int,
         expected_value: Row,
         result_value: Row,
         result_columns: List[Tuple[str, str]],
         row_num: int,
         data_type_for_column: StructType,
-    ) -> Tuple[int, List[SparkDataFrameError]]:
+    ) -> List[SparkDataFrameError]:
         """
         Compares values of a struct (nested columns) and accumulates errors.
 
 
         :param column_name: The name of the column being compared.
-        :param error_count: The current error count.
         :param expected_value: The expected value in the column.
         :param result_value: The actual value in the column.
         :param result_columns: The list of column names and types.
@@ -229,11 +204,10 @@ class SparkDataFrameComparerHelper:
         :return: The updated error count and a list of identified errors.
         """
         if expected_value is None and result_value is None:
-            return error_count, []
+            return []
 
         if result_value is None or expected_value is None:
-            error_count += 1
-            return error_count, [
+            return [
                 SparkDataFrameError(
                     exception_type=ExceptionType.DataMismatch,
                     result=str(result_value),
@@ -255,38 +229,32 @@ class SparkDataFrameComparerHelper:
             struct_item_data_type: DataType = struct_item_type.dataType
 
             # Recursively compare nested structs
-            column_error_count, column_errors = (
-                SparkDataFrameComparerHelper.check_column_value(
-                    column_name=f"{column_name}.{struct_item_type.name}",
-                    error_count=error_count,
-                    expected_value=expected_struct_item,
-                    result_value=result_struct_item,
-                    result_columns=result_columns,
-                    row_num=row_num,
-                    data_type_for_column=struct_item_data_type,
-                )
+            column_errors = SparkDataFrameComparerHelper.check_column_value(
+                column_name=f"{column_name}.{struct_item_type.name}",
+                expected_value=expected_struct_item,
+                result_value=result_struct_item,
+                result_columns=result_columns,
+                row_num=row_num,
+                data_type_for_column=struct_item_data_type,
             )
-            error_count += column_error_count
             my_errors.extend(column_errors)
 
-        return error_count, my_errors
+        return my_errors
 
     @staticmethod
     def check_column_simple_value(
         *,
         column_name: str,
-        error_count: int,
         expected_value: Any,
         result_value: Any,
         row_num: int,
-    ) -> Tuple[int, List[SparkDataFrameError]]:
+    ) -> List[SparkDataFrameError]:
         """
         Compares simple column values like strings, ints, or floats.
         Handles special cases like NaN values.
 
 
         :param column_name: The name of the column being compared.
-        :param error_count: The current error count.
         :param expected_value: The expected value in the column.
         :param result_value: The actual value in the column.
         :param row_num: The current row number being compared.
@@ -306,8 +274,7 @@ class SparkDataFrameComparerHelper:
             and not result_isnan
             and not (not result_value and not expected_value)
         ):
-            error_count += 1
-            return error_count + 1, [
+            return [
                 SparkDataFrameError(
                     exception_type=ExceptionType.DataMismatch,
                     result=str(result_value),
@@ -317,7 +284,7 @@ class SparkDataFrameComparerHelper:
                 )
             ]
 
-        return error_count, []
+        return []
 
     @staticmethod
     def compare_scalar(

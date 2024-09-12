@@ -194,16 +194,18 @@ def assert_compare_data_frames(
                 func_path_modifier=func_path_modifier,
             )
 
-        error_count, my_errors = SparkDataFrameComparerHelper.check_data_frame(
-            error_count=error_count,
-            expected_rows=expected_rows,
-            my_errors=my_errors,
-            result_column_schemas=result_column_schemas,
-            result_columns=result_columns,
-            result_rows=result_rows,
-            row_num=row_num,
+        my_errors.extend(
+            SparkDataFrameComparerHelper.check_data_frame(
+                expected_rows=expected_rows,
+                my_errors=my_errors,
+                result_column_schemas=result_column_schemas,
+                result_columns=result_columns,
+                result_rows=result_rows,
+                row_num=row_num,
+            )
         )
 
+    error_count += len(my_errors)
     if error_count != 0:
         print_data_frame_info(expected_df=expected_df, result_df=result_df)
         raise SparkDataFrameComparerException(
