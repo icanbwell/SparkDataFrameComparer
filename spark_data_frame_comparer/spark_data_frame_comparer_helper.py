@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, time
 from math import isnan
 from typing import List, Any, Tuple, Union, Dict
 
@@ -24,6 +24,16 @@ class SparkDataFrameComparerHelper:
         """
         Compares rows of the result DataFrame with expected rows and identifies mismatches.
         Returns the updated error count and a list of identified errors.
+
+
+        :param error_count: The current error count.
+        :param expected_rows: The list of expected rows.
+        :param my_errors: The list of errors identified so far.
+        :param result_column_schemas: The schema of the result DataFrame.
+        :param result_columns: The list of column names and types.
+        :param result_rows: The list of rows from the result DataFrame.
+        :param row_num: The current row number being compared.
+        :return: The updated error count and a list of identified errors.
         """
 
         # Iterate over each column in the result dataframe schema
@@ -85,6 +95,16 @@ class SparkDataFrameComparerHelper:
         """
         Compares the values in a column and returns any mismatch errors.
         Handles complex data types like arrays and structs.
+
+
+        :param column_name: The name of the column being compared.
+        :param error_count: The current error count.
+        :param expected_value: The expected value in the column.
+        :param result_columns: The list of column names and types.
+        :param result_value: The actual value in the column.
+        :param row_num: The current row number being compared.
+        :param data_type_for_column: The data type of the column.
+        :return: The updated error count and a list of identified errors.
         """
         my_errors: List[SparkDataFrameError] = []
 
@@ -184,6 +204,16 @@ class SparkDataFrameComparerHelper:
     ) -> Tuple[int, List[SparkDataFrameError]]:
         """
         Compares values of a struct (nested columns) and accumulates errors.
+
+
+        :param column_name: The name of the column being compared.
+        :param error_count: The current error count.
+        :param expected_value: The expected value in the column.
+        :param result_value: The actual value in the column.
+        :param result_columns: The list of column names and types.
+        :param row_num: The current row number being compared.
+        :param data_type_for_column: The data type of the column.
+        :return: The updated error count and a list of identified errors.
         """
         if expected_value is None and result_value is None:
             return error_count, []
@@ -240,6 +270,14 @@ class SparkDataFrameComparerHelper:
         """
         Compares simple column values like strings, ints, or floats.
         Handles special cases like NaN values.
+
+
+        :param column_name: The name of the column being compared.
+        :param error_count: The current error count.
+        :param expected_value: The expected value in the column.
+        :param result_value: The actual value in the column.
+        :param row_num: The current row number being compared.
+        :return: The updated error count and a list of identified errors.
         """
         result_isnan = (
             isinstance(result_value, float)
@@ -271,11 +309,16 @@ class SparkDataFrameComparerHelper:
     @staticmethod
     def compare_scalar(
         *,
-        expected_value: Union[int, float, bool, str],
-        result_value: Union[int, float, bool, str],
+        expected_value: Union[int, float, bool, str, datetime, time],
+        result_value: Union[int, float, bool, str, datetime, time],
     ) -> bool:
         """
         Compares scalar values, special handling for datetime to ignore microseconds.
+
+
+        :param expected_value: The expected scalar value.
+        :param result_value: The actual scalar value.
+        :return: True if the values are equal, False otherwise.
         """
         if isinstance(expected_value, datetime) and isinstance(result_value, datetime):
             return expected_value.replace(microsecond=0) == result_value.replace(
@@ -288,6 +331,11 @@ class SparkDataFrameComparerHelper:
         """
         Recursively adds missing keys with value None in both dictionaries.
         If a key is present in one dictionary but not the other, it adds the missing key with value None.
+
+
+        :param d1: The first dictionary to normalize.
+        :param d2: The second dictionary to normalize.
+        :return: None
         """
         all_keys = set(d1.keys()).union(
             set(d2.keys())
