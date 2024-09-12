@@ -134,7 +134,7 @@ def test_check_array_value() -> None:
 
     assert len(errors) == 1
     assert errors[0].message == (
-        "Expected array in row:1, col:scores to be [80, 90] but actual is [80, 85]"
+        "Expected row:1, col:scores[1] to be 90 but actual is 85"
     )
 
 

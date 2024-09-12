@@ -158,6 +158,19 @@ class SparkDataFrameComparerHelper:
                     )
                     error_count += column_error_count
                     my_errors.extend(column_errors)
+                else:
+                    # Compare simple data types like int, float, string, etc.
+                    column_error_count, column_errors = (
+                        SparkDataFrameComparerHelper.check_column_simple_value(
+                            column_name=f"{column_name}[{array_item_index}]",
+                            error_count=error_count,
+                            expected_value=expected_array_item,
+                            result_value=result_array_item,
+                            row_num=row_num,
+                        )
+                    )
+                    error_count += column_error_count
+                    my_errors.extend(column_errors)
 
         # Handle StructType comparison (nested columns)
         elif isinstance(data_type_for_column, StructType):
