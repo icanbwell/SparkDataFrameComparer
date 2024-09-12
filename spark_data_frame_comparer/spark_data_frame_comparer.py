@@ -194,7 +194,7 @@ def assert_compare_data_frames(
                 func_path_modifier=func_path_modifier,
             )
 
-        error_count, my_errors = check_data_frame(
+        error_count, my_errors = SparkDataFrameComparerHelper.check_data_frame(
             error_count=error_count,
             expected_rows=expected_rows,
             my_errors=my_errors,
@@ -221,60 +221,6 @@ def assert_compare_data_frames(
     # if everything worked then remove the compare file
     if compare_sh_path and os.path.exists(str(compare_sh_path)):
         os.remove(str(compare_sh_path))
-
-
-def check_data_frame(
-    *,
-    error_count: int,
-    expected_rows: List[Row],
-    my_errors: List[SparkDataFrameError],
-    result_column_schemas: Dict[str, StructField],
-    result_columns: List[Tuple[str, str]],
-    result_rows: List[Row],
-    row_num: int,
-) -> Tuple[int, List[SparkDataFrameError]]:
-    result_column_num: int
-    result_column_name: str
-    result_schema_for_column: StructField
-    for result_column_num, (
-        result_column_name,
-        result_schema_for_column,
-    ) in enumerate(result_column_schemas.items()):
-        column_name: str = result_schema_for_column.name
-        result_value = result_rows[row_num][result_column_num]
-        expected_value = expected_rows[row_num][result_column_num]
-        if (expected_value is None or expected_value == "") and (
-            result_value is None or result_value == ""
-        ):
-            pass
-        elif result_value is None or expected_value is None:
-            error_count += 1
-            my_errors.append(
-                SparkDataFrameError(
-                    exception_type=ExceptionType.DataMismatch,
-                    result=str(result_value),
-                    expected=str(expected_value),
-                    message=f"row {row_num}: column {result_column_name} "
-                    f"expected: [{expected_value}] actual: [{result_value}]",
-                )
-            )
-        else:
-            column_error_count: int
-            column_errors: List[SparkDataFrameError]
-            column_error_count, column_errors = (
-                SparkDataFrameComparerHelper.check_column_value(
-                    column_name=column_name,
-                    error_count=error_count,
-                    expected_value=expected_value,
-                    result_columns=result_columns,
-                    result_value=result_value,
-                    row_num=row_num,
-                    data_type_for_column=result_schema_for_column.dataType,
-                )
-            )
-            error_count += column_error_count
-            my_errors = my_errors + column_errors
-    return error_count, my_errors
 
 
 def print_data_frame_info(expected_df: DataFrame, result_df: DataFrame) -> None:
