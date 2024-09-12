@@ -13,6 +13,7 @@ from spark_data_frame_comparer.spark_data_frame_exception_type import ExceptionT
 class SparkDataFrameComparerHelper:
     @staticmethod
     def check_column_value(
+        *,
         column_name: str,
         error_count: int,
         expected_value: Any,
@@ -76,6 +77,8 @@ class SparkDataFrameComparerHelper:
                     expected_value=expected_value,
                     result_value=result_value,
                     row_num=row_num,
+                    data_type_for_column=data_type_for_column,
+                    result_columns=result_columns,
                 )
             )
             error_count += column_error_count
@@ -96,11 +99,14 @@ class SparkDataFrameComparerHelper:
 
     @staticmethod
     def check_struct(
+        *,
         column_name: str,
         error_count: int,
         expected_value: Row,
         result_value: Row,
+        result_columns: List[Tuple[str, str]],
         row_num: int,
+        data_type_for_column: StructType,
     ) -> Tuple[int, List[SparkDataFrameError]]:
         assert isinstance(column_name, str)
         if expected_value is None and result_value is None:
@@ -116,26 +122,34 @@ class SparkDataFrameComparerHelper:
                     f"but actual is {result_value}",
                 )
             ]
-        result_dict: Dict[str, Any] = result_value.asDict(recursive=True)
-        expected_dict: Dict[str, Any] = expected_value.asDict(recursive=True)
-        SparkDataFrameComparerHelper.normalize_dictionaries(
-            d1=result_dict, d2=expected_dict
-        )
-        if result_dict != expected_dict:
-            return error_count + 1, [
-                SparkDataFrameError(
-                    exception_type=ExceptionType.DataMismatch,
-                    result=str(result_dict),
-                    expected=str(expected_dict),
-                    message=f"Expected struct in row:{row_num}, col:{column_name} to be expected vs actual:"
-                    f"\n{expected_dict}"
-                    f"\n{result_dict}\n",
+
+        my_errors: List[SparkDataFrameError] = []
+        for struct_item_index in range(0, len(result_value)):
+            result_struct_item = result_value[struct_item_index]
+            expected_struct_item = expected_value[struct_item_index]
+            struct_item_type: DataType = data_type_for_column.fields[
+                struct_item_index
+            ].dataType
+            column_error_count: int
+            column_errors: List[SparkDataFrameError]
+            column_error_count, column_errors = (
+                SparkDataFrameComparerHelper.check_column_value(
+                    column_name=column_name,
+                    error_count=error_count,
+                    expected_value=expected_struct_item,
+                    result_value=result_struct_item,
+                    result_columns=result_columns,
+                    row_num=row_num,
+                    data_type_for_column=struct_item_type,
                 )
-            ]
-        return error_count, []
+            )
+            error_count += column_error_count
+            my_errors = my_errors + column_errors
+        return error_count, my_errors
 
     @staticmethod
     def check_column_simple_value(
+        *,
         column_name: str,
         error_count: int,
         expected_value: Any,
@@ -153,7 +167,7 @@ class SparkDataFrameComparerHelper:
         #   and both result and expected are not false
         if (
             not SparkDataFrameComparerHelper.compare_scalar(
-                expected_value, result_value
+                expected_value=expected_value, result_value=result_value
             )
             and not result_isnan
             and not (not result_value and not expected_value)
@@ -172,6 +186,7 @@ class SparkDataFrameComparerHelper:
 
     @staticmethod
     def compare_scalar(
+        *,
         expected_value: Union[int, float, bool, str],
         result_value: Union[int, float, bool, str],
     ) -> bool:

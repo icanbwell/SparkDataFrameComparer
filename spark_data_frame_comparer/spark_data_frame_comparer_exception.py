@@ -52,7 +52,7 @@ class SparkDataFrameComparerException(Exception):
         if errors:
             error: SparkDataFrameError
             for index, error in enumerate(errors):
-                self.full_message += f"------ DataFrame Compare Failure {index + 1} ------\n{error.message}"
+                self.full_message += f"\n------ DataFrame Compare Failure {index + 1} ------\n{error.message}"
 
         # add dataframes
         self.full_message += "\n------ Expected DataFrame ------\n"
