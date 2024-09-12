@@ -53,8 +53,7 @@ test-logs: up
 	docker compose run --rm --name sdc_tests \
 		dev \
 		pytest \
-		--log-cli-level=INFO \
-		--log-file=/reports/pytest_output_core.log --log-file-level=INFO \
+		--log-file=/reports/pytest_output_core.log \
 		-o junit_logging=all -o junit_log_passing_tests=false \
 		--tb=long \
 		--durations=10 \
