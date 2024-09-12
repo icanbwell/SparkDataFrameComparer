@@ -2,7 +2,7 @@ from datetime import datetime
 from math import isnan
 from typing import List, Any, Tuple, Union, Dict
 
-from pyspark.sql.types import ArrayType, StructType, DataType, Row
+from pyspark.sql.types import ArrayType, StructType, DataType, Row, StructField
 
 from spark_data_frame_comparer.spark_data_frame_error import (
     SparkDataFrameError,
@@ -127,20 +127,21 @@ class SparkDataFrameComparerHelper:
         for struct_item_index in range(0, len(result_value)):
             result_struct_item = result_value[struct_item_index]
             expected_struct_item = expected_value[struct_item_index]
-            struct_item_type: DataType = data_type_for_column.fields[
+            struct_item_type: StructField = data_type_for_column.fields[
                 struct_item_index
-            ].dataType
+            ]
+            struct_item_data_type: DataType = struct_item_type.dataType
             column_error_count: int
             column_errors: List[SparkDataFrameError]
             column_error_count, column_errors = (
                 SparkDataFrameComparerHelper.check_column_value(
-                    column_name=column_name,
+                    column_name=f"{column_name}.{struct_item_type.name}",
                     error_count=error_count,
                     expected_value=expected_struct_item,
                     result_value=result_struct_item,
                     result_columns=result_columns,
                     row_num=row_num,
-                    data_type_for_column=struct_item_type,
+                    data_type_for_column=struct_item_data_type,
                 )
             )
             error_count += column_error_count
