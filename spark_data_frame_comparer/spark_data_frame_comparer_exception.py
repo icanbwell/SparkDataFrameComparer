@@ -51,10 +51,13 @@ class SparkDataFrameComparerException(Exception):
             self.full_message += f"Info: {additional_info}\n"
         if errors:
             error: SparkDataFrameError
-            for error in errors:
-                self.full_message += f"------ Failure ------\n{error.message}"
+            for index, error in enumerate(errors):
+                self.full_message += (
+                    f"------ Failure {index + 1} ------\n{error.message}"
+                )
+
         # add dataframes
-        self.full_message += "------ Expected DataFrame ------\n"
+        self.full_message += "\n------ Expected DataFrame ------\n"
         self.full_message += f"{get_pretty_data_frame(expected_df, limit=100)}\n"
         self.full_message += "------ Result DataFrame ------\n"
         self.full_message += f"{get_pretty_data_frame(result_df, limit=100)}\n"
