@@ -22,6 +22,9 @@ def test_data_frame_sorter(spark_session: SparkSession) -> None:
     df1: DataFrame = spark_session.read.json(test_file_path)
     result_df: DataFrame = SparkDataFrameSorter.deterministic_sort(df=df1)
 
+    print("------- result ----")
+    result_df.show()
+
     results = [row.asDict(recursive=True) for row in result_df.collect()]
 
     assert len(results) == 2
