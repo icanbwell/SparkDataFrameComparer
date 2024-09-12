@@ -2,8 +2,9 @@ LANG=en_US.utf-8
 
 export LANG
 
-Pipfile.lock: Pipfile
-	docker compose run --rm --name spark_dataframe_comparer dev sh -c "rm -f Pipfile.lock && pipenv lock --dev"
+.PHONY: Pipfile.lock
+Pipfile.lock: build
+	docker compose run --rm --name spark_dataframe_comparer dev /bin/bash -c "rm -f Pipfile.lock && pipenv lock --dev"
 
 .PHONY:devdocker
 devdocker: ## Builds the docker for dev
@@ -17,7 +18,7 @@ build: ## Builds the docker for dev
 	docker compose build --progress=plain --parallel
 
 .PHONY: up
-up: Pipfile.lock
+up:
 	docker compose up --build -d
 
 .PHONY: down
