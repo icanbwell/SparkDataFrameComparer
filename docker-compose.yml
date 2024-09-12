@@ -8,6 +8,5 @@ services:
     image: sparkdataframecomparer_dev
     volumes:
       - ./:/sdc/
-      - ./reports:/reports
     container_name: sparkdataframecomparer_dev
     working_dir: /sdc
