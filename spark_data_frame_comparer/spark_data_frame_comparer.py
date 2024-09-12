@@ -329,16 +329,18 @@ def check_struct(
     if result_value is None or expected_value is None:
         error_count += 1
         return error_count, [
-            f"Expected struct in row:{row_num}, col:{column_name} to be {expected_value} "
-            f"but actual is {result_value}"
+            f"struct in row:{row_num}, col:{column_name} is null for expected vs actual"
+            f"\n{expected_value}"
+            f"\n{result_value}\n"
         ]
     result_dict: Dict[str, Any] = result_value.asDict(recursive=True)
     expected_dict: Dict[str, Any] = expected_value.asDict(recursive=True)
     normalize_dictionaries(d1=result_dict, d2=expected_dict)
     if result_dict != expected_dict:
         return error_count + 1, [
-            f"Expected struct in row:{row_num}, col:{column_name} to be {expected_dict} "
-            f"but actual is {result_dict}"
+            f"Expected struct in row:{row_num}, col:{column_name} to be expected vs actual:"
+            f"\n{expected_dict}"
+            f"\n{result_dict}\n"
         ]
     return error_count, []
 

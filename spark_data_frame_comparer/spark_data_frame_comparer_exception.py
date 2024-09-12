@@ -12,6 +12,7 @@ class ExceptionType(Enum):
 class SparkDataFrameComparerException(Exception):
     def __init__(
         self,
+        *,
         exception_type: ExceptionType,
         result: str,
         expected: str,
