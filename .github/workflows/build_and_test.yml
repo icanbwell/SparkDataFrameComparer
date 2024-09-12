@@ -14,6 +14,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Create directory and set permissions
+        run: |
+          sudo mkdir -p /home/runner/work/${{ github.repository }}
+          sudo chown -R runner:runner /home/runner/work/${{ github.repository }}
+          sudo chmod 777 /home/runner/work/${{ github.repository }}
+
       # Checks-out your repository
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

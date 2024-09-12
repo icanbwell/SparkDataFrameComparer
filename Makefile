@@ -53,14 +53,13 @@ test-logs: up
 	docker compose run --rm --name sdc_tests \
 		dev \
 		pytest \
-		--capture=fd \
 		--log-cli-level=INFO \
 		--log-file=/reports/pytest_output_core.log --log-file-level=INFO \
 		-o junit_logging=all -o junit_log_passing_tests=false \
 		--tb=long \
 		--durations=10 \
-		tests \
-		--junitxml=/reports/pytest_report.xml
+		--junitxml=/reports/pytest_report.xml \
+		tests
 
 .PHONY: sphinx-html
 sphinx-html:
