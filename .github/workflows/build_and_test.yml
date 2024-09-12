@@ -44,6 +44,7 @@ jobs:
             tests
 
       - name: list pytest report
+        if: ${{ always() }}
         run: |
           ls -la /home/runner/work/${{ github.repository }}/reports
           cat /home/runner/work/${{ github.repository }}/reports/pytest_report.xml
