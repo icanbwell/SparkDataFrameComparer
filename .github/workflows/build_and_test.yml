@@ -43,6 +43,11 @@ jobs:
             --junitxml=/reports/pytest_report.xml
             tests
 
+      - name: list pytest report
+        run: |
+          ls -la /home/runner/work/${{ github.repository }}/reports
+          cat /home/runner/work/${{ github.repository }}/reports/pytest_report.xml
+
       - name: Upload test output
         # Use always() to always run this step to publish test results when there are test failures
         if: ${{ always() }}
