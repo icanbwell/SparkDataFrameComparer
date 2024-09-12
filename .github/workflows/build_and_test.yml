@@ -25,6 +25,7 @@ jobs:
         run: make run-pre-commit
 
       # setup and install everything and run tests
+      # https://docs.pytest.org/en/8.2.x/reference/reference.html#confval-junit_logging
       - name: up
         run: make up
       - name: tests
@@ -36,6 +37,7 @@ jobs:
             --capture=fd \
             --log-cli-level=INFO \
             --log-file=/reports/pytest_output_core.log --log-file-level=INFO \
+            -o junit_logging=all -o junit_log_passing_tests=false \
             --tb=long \
             --durations=10 \
             tests \
