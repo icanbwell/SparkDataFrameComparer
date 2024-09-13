@@ -10,7 +10,7 @@ from spark_data_frame_comparer.spark_data_frame_comparer import (
 from tests.conftest import clean_spark_session
 
 
-def test_simple_with_null_values_in_json(spark_session: SparkSession) -> None:
+def test_simple_with_null_expected_values_in_json(spark_session: SparkSession) -> None:
     # Arrange
     clean_spark_session(spark_session)
     data_dir: Path = Path(__file__).parent.joinpath("./")
