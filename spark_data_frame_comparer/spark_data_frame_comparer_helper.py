@@ -141,6 +141,9 @@ class SparkDataFrameComparerHelper:
         """
         my_errors: List[SparkDataFrameError] = []
 
+        if expected_value is None and result_value is None:
+            return []
+
         result_struct_field_for_column: Optional[StructField] = (
             combined_schema_item.value_1
         )
@@ -182,11 +185,11 @@ class SparkDataFrameComparerHelper:
                 # If the expected column is not an array, log an error
                 column_errors = [
                     SparkDataFrameError(
-                        exception_type=ExceptionType.DataMismatch,
+                        exception_type=ExceptionType.SchemaMismatch,
                         result=str(result_value),
                         expected=str(expected_value),
-                        message=f"Expected array in row:{row_num}, col:{column_name} to be {expected_value} "
-                        f"but actual is {result_value}",
+                        message=f"Column {column_name} in expected output should be of type ArrayType"
+                        f" but is {expected_struct_field_for_column.dataType}",
                     )
                 ]
             my_errors.extend(column_errors)
@@ -205,11 +208,11 @@ class SparkDataFrameComparerHelper:
                 # If the expected column is not a struct, log an error
                 column_errors = [
                     SparkDataFrameError(
-                        exception_type=ExceptionType.DataMismatch,
+                        exception_type=ExceptionType.SchemaMismatch,
                         result=str(result_value),
                         expected=str(expected_value),
-                        message=f"Expected struct in row:{row_num}, col:{column_name} to be {expected_value} "
-                        f"but actual is {result_value}",
+                        message=f"Column {column_name} in expected output should be of type StructType "
+                        f"but is {expected_struct_field_for_column.dataType}",
                     )
                 ]
             my_errors.extend(column_errors)
