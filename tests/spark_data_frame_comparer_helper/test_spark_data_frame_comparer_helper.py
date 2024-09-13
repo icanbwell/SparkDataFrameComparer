@@ -1,5 +1,5 @@
 import pytest
-from typing import Dict, List, Tuple, Any
+from typing import Dict, List, Any
 from pyspark.sql.types import (
     StructField,
     StringType,
@@ -12,6 +12,9 @@ from spark_data_frame_comparer.spark_data_frame_comparer_helper import (
     SparkDataFrameComparerHelper,
 )
 from spark_data_frame_comparer.spark_data_frame_error import SparkDataFrameError
+from spark_data_frame_comparer.utilities.dictionary_joiner.joined_result import (
+    JoinedResult,
+)
 
 
 @pytest.fixture
@@ -46,18 +49,11 @@ def test_check_data_frame_no_errors(
 ) -> None:
     my_errors: List[SparkDataFrameError] = []
 
-    result_columns: List[Tuple[str, str]] = [
-        ("name", "string"),
-        ("age", "int"),
-        ("scores", "array<int>"),
-    ]
-
     my_errors = SparkDataFrameComparerHelper.check_data_frame(
         expected_rows=setup_expected_rows,
         my_errors=my_errors,
         result_column_schemas=setup_schema,
         expected_column_schemas=setup_schema,
-        result_columns=result_columns,
         result_rows=setup_expected_rows,
         row_num=0,
     )
@@ -72,18 +68,11 @@ def test_check_data_frame_with_errors(
 ) -> None:
     my_errors: List[SparkDataFrameError] = []
 
-    result_columns: List[Tuple[str, str]] = [
-        ("name", "string"),
-        ("age", "int"),
-        ("scores", "array<int>"),
-    ]
-
     my_errors = SparkDataFrameComparerHelper.check_data_frame(
         expected_rows=setup_expected_rows,
         my_errors=my_errors,
         result_column_schemas=setup_schema,
         expected_column_schemas=setup_schema,
-        result_columns=result_columns,
         result_rows=setup_result_rows,
         row_num=1,
     )
@@ -115,14 +104,16 @@ def test_check_array_value() -> None:
     row_num: int = 1
     column_name: str = "scores"
     data_type: ArrayType = ArrayType(IntegerType())
+    struct_field: StructField = StructField("scores", data_type, True)
 
     errors = SparkDataFrameComparerHelper.check_column_value(
         column_name=column_name,
         expected_value=expected_value,
-        result_columns=[],
         result_value=result_value,
         row_num=row_num,
-        data_type_for_column=data_type,
+        combined_schema_item=JoinedResult(
+            0, 0, column_name, struct_field, struct_field
+        ),
     )
 
     assert len(errors) == 1
@@ -144,9 +135,9 @@ def test_check_struct_value() -> None:
         column_name=column_name,
         expected_value=expected_value,
         result_value=result_value,
-        result_columns=[],
         row_num=row_num,
-        data_type_for_column=data_type,
+        result_data_type_for_column=data_type,
+        expected_data_type_for_column=data_type,
     )
 
     assert len(errors) == 1

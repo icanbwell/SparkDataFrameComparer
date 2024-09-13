@@ -1,6 +1,6 @@
 from datetime import datetime, time
 from math import isnan
-from typing import List, Any, Tuple, Union, Dict
+from typing import List, Any, Union, Dict, Optional
 
 from pyspark.sql.types import ArrayType, StructType, DataType, Row, StructField
 
@@ -23,7 +23,6 @@ class SparkDataFrameComparerHelper:
         my_errors: List[SparkDataFrameError],
         result_column_schemas: Dict[str, StructField],
         expected_column_schemas: Dict[str, StructField],
-        result_columns: List[Tuple[str, str]],
         result_rows: List[Row],
         row_num: int,
     ) -> List[SparkDataFrameError]:
@@ -36,7 +35,6 @@ class SparkDataFrameComparerHelper:
         :param my_errors: The list of errors identified so far.
         :param result_column_schemas: The schema of the result DataFrame.
         :param expected_column_schemas: The schema of the expected DataFrame.
-        :param result_columns: The list of column names and types.
         :param result_rows: The list of rows from the result DataFrame.
         :param row_num: The current row number being compared.
         :return: The updated error count and a list of identified errors.
@@ -111,10 +109,10 @@ class SparkDataFrameComparerHelper:
                     column_errors = SparkDataFrameComparerHelper.check_column_value(
                         column_name=column_name,
                         expected_value=expected_value,
-                        result_columns=result_columns,
                         result_value=result_value,
                         row_num=row_num,
-                        data_type_for_column=combined_schema_item.value_1.dataType,
+                        combined_schema_item=combined_schema_item,
+                        # data_type_for_column=combined_schema_item.value_1.dataType,
                     )
                     my_errors.extend(column_errors)
 
@@ -125,10 +123,9 @@ class SparkDataFrameComparerHelper:
         *,
         column_name: str,
         expected_value: Any,
-        result_columns: List[Tuple[str, str]],
         result_value: Any,
         row_num: int,
-        data_type_for_column: DataType,
+        combined_schema_item: JoinedResult[StructField],
     ) -> List[SparkDataFrameError]:
         """
         Compares the values in a column and returns any mismatch errors.
@@ -137,21 +134,53 @@ class SparkDataFrameComparerHelper:
 
         :param column_name: The name of the column being compared.
         :param expected_value: The expected value in the column.
-        :param result_columns: The list of column names and types.
         :param result_value: The actual value in the column.
         :param row_num: The current row number being compared.
-        :param data_type_for_column: The data type of the column.
+        :param combined_schema_item: The combined schema item for the column.
         :return: The updated error count and a list of identified errors.
         """
         my_errors: List[SparkDataFrameError] = []
 
+        result_data_type_for_column: Optional[StructField] = (
+            combined_schema_item.value_1
+        )
+        if result_data_type_for_column is None:
+            return [
+                SparkDataFrameError(
+                    exception_type=ExceptionType.DataMismatch,
+                    result=str(result_value),
+                    expected=str(expected_value),
+                    message=f"Expected row:{row_num}, col:{column_name} to be {expected_value} "
+                    f"but actual is {result_value}",
+                )
+            ]
+        expected_data_type_for_column: Optional[StructField] = (
+            combined_schema_item.value_2
+        )
+        if expected_data_type_for_column is None:
+            return [
+                SparkDataFrameError(
+                    exception_type=ExceptionType.DataMismatch,
+                    result=str(result_value),
+                    expected=str(expected_value),
+                    message=f"Expected row:{row_num}, col:{column_name} to be {expected_value} "
+                    f"but actual is {result_value}",
+                )
+            ]
         # If the column is an array, handle comparison for array elements
-        if isinstance(data_type_for_column, ArrayType):
-            if result_value is None and expected_value is None:
-                return []
-
-            if result_value is None or expected_value is None:
-                return [
+        if isinstance(result_data_type_for_column, ArrayType):
+            if isinstance(expected_data_type_for_column, ArrayType):
+                column_errors = SparkDataFrameComparerHelper.check_array(
+                    row_num=row_num,
+                    column_name=column_name,
+                    result_value=result_value,
+                    expected_value=expected_value,
+                    result_data_type_for_column=result_data_type_for_column,
+                    expected_data_type_for_column=expected_data_type_for_column,
+                )
+            else:
+                # If the expected column is not an array, log an error
+                column_errors = [
                     SparkDataFrameError(
                         exception_type=ExceptionType.DataMismatch,
                         result=str(result_value),
@@ -160,59 +189,29 @@ class SparkDataFrameComparerHelper:
                         f"but actual is {result_value}",
                     )
                 ]
-
-            # Compare each element in the array
-            for array_item_index in range(len(result_value)):
-                element_type: DataType = data_type_for_column.elementType
-                result_array_item = result_value[array_item_index]
-
-                # If the expected array is shorter than the result array, log an error
-                if len(expected_value) < array_item_index + 1:
-                    return [
-                        SparkDataFrameError(
-                            exception_type=ExceptionType.DataMismatch,
-                            result=str(result_value),
-                            expected=str(expected_value),
-                            message=f"Expected row:{row_num}, col:{column_name} has only {len(expected_value)} "
-                            f"items but Actual has > {array_item_index + 1}",
-                        )
-                    ]
-
-                expected_array_item = expected_value[array_item_index]
-
-                # Handle nested structures like Rows within arrays
-                if isinstance(result_array_item, Row):
-                    column_errors = SparkDataFrameComparerHelper.check_column_value(
-                        column_name=column_name,
-                        expected_value=expected_array_item,
-                        result_value=result_array_item,
-                        result_columns=result_columns,
-                        row_num=row_num,
-                        data_type_for_column=element_type,
+            my_errors.extend(column_errors)
+        elif isinstance(result_data_type_for_column, StructType):
+            # Handle StructType comparison (nested columns)
+            if isinstance(expected_data_type_for_column, StructType):
+                column_errors = SparkDataFrameComparerHelper.check_struct(
+                    column_name=column_name,
+                    expected_value=expected_value,
+                    result_value=result_value,
+                    row_num=row_num,
+                    result_data_type_for_column=result_data_type_for_column,
+                    expected_data_type_for_column=expected_data_type_for_column,
+                )
+            else:
+                # If the expected column is not a struct, log an error
+                column_errors = [
+                    SparkDataFrameError(
+                        exception_type=ExceptionType.DataMismatch,
+                        result=str(result_value),
+                        expected=str(expected_value),
+                        message=f"Expected struct in row:{row_num}, col:{column_name} to be {expected_value} "
+                        f"but actual is {result_value}",
                     )
-                    my_errors.extend(column_errors)
-                else:
-                    # Compare simple data types like int, float, string, etc.
-                    column_errors = (
-                        SparkDataFrameComparerHelper.check_column_simple_value(
-                            column_name=f"{column_name}[{array_item_index}]",
-                            expected_value=expected_array_item,
-                            result_value=result_array_item,
-                            row_num=row_num,
-                        )
-                    )
-                    my_errors.extend(column_errors)
-
-        # Handle StructType comparison (nested columns)
-        elif isinstance(data_type_for_column, StructType):
-            column_errors = SparkDataFrameComparerHelper.check_struct(
-                column_name=column_name,
-                expected_value=expected_value,
-                result_value=result_value,
-                row_num=row_num,
-                data_type_for_column=data_type_for_column,
-                result_columns=result_columns,
-            )
+                ]
             my_errors.extend(column_errors)
 
         # Handle simple data types like int, float, string, etc.
@@ -228,14 +227,85 @@ class SparkDataFrameComparerHelper:
         return my_errors
 
     @staticmethod
+    def check_array(
+        row_num: int,
+        column_name: str,
+        result_value: List[Any],
+        expected_value: List[Any],
+        result_data_type_for_column: ArrayType,
+        expected_data_type_for_column: ArrayType,
+    ) -> List[SparkDataFrameError]:
+        if result_value is None and expected_value is None:
+            return []
+
+        if result_value is None or expected_value is None:
+            return [
+                SparkDataFrameError(
+                    exception_type=ExceptionType.DataMismatch,
+                    result=str(result_value),
+                    expected=str(expected_value),
+                    message=f"Expected array in row:{row_num}, col:{column_name} to be {expected_value} "
+                    f"but actual is {result_value}",
+                )
+            ]
+
+        result_element_type: DataType = result_data_type_for_column.elementType
+        expected_element_type: DataType = expected_data_type_for_column.elementType
+
+        my_errors: List[SparkDataFrameError] = []
+        # Compare each element in the array
+        for array_item_index in range(len(result_value)):
+            result_array_item = result_value[array_item_index]
+
+            # If the expected array is shorter than the result array, log an error
+            if len(expected_value) < array_item_index + 1:
+                return [
+                    SparkDataFrameError(
+                        exception_type=ExceptionType.DataMismatch,
+                        result=str(result_value),
+                        expected=str(expected_value),
+                        message=f"Expected row:{row_num}, col:{column_name} has only {len(expected_value)} "
+                        f"items but Actual has > {array_item_index + 1}",
+                    )
+                ]
+
+            expected_array_item = expected_value[array_item_index]
+
+            # Handle nested structures like Rows within arrays
+            if isinstance(result_array_item, Row):
+                # dataType should be a StructType
+                assert isinstance(result_element_type, StructType)
+                assert isinstance(expected_element_type, StructType)
+
+                column_errors = SparkDataFrameComparerHelper.check_struct(
+                    column_name=column_name,
+                    expected_value=expected_array_item,
+                    result_value=result_array_item,
+                    row_num=row_num,
+                    result_data_type_for_column=result_element_type,
+                    expected_data_type_for_column=expected_element_type,
+                )
+                my_errors.extend(column_errors)
+            else:
+                # Compare simple data types like int, float, string, etc.
+                column_errors = SparkDataFrameComparerHelper.check_column_simple_value(
+                    column_name=f"{column_name}[{array_item_index}]",
+                    expected_value=expected_array_item,
+                    result_value=result_array_item,
+                    row_num=row_num,
+                )
+                my_errors.extend(column_errors)
+        return my_errors
+
+    @staticmethod
     def check_struct(
         *,
         column_name: str,
         expected_value: Row,
         result_value: Row,
-        result_columns: List[Tuple[str, str]],
         row_num: int,
-        data_type_for_column: StructType,
+        result_data_type_for_column: StructType,
+        expected_data_type_for_column: StructType,
     ) -> List[SparkDataFrameError]:
         """
         Compares values of a struct (nested columns) and accumulates errors.
@@ -244,9 +314,9 @@ class SparkDataFrameComparerHelper:
         :param column_name: The name of the column being compared.
         :param expected_value: The expected value in the column.
         :param result_value: The actual value in the column.
-        :param result_columns: The list of column names and types.
         :param row_num: The current row number being compared.
-        :param data_type_for_column: The data type of the column.
+        :param result_data_type_for_column: The data type of the column.
+        :param expected_data_type_for_column: The data type of the expected column.
         :return: The updated error count and a list of identified errors.
         """
         if expected_value is None and result_value is None:
@@ -265,25 +335,68 @@ class SparkDataFrameComparerHelper:
 
         my_errors: List[SparkDataFrameError] = []
 
-        # Iterate through each field of the struct and compare the fields
-        for struct_item_index in range(len(result_value)):
-            result_struct_item = result_value[struct_item_index]
-            expected_struct_item = expected_value[struct_item_index]
-            struct_item_type: StructField = data_type_for_column.fields[
-                struct_item_index
-            ]
-            struct_item_data_type: DataType = struct_item_type.dataType
+        result_schema_dict: Dict[str, StructField] = {
+            t.name: t for t in result_data_type_for_column.fields
+        }
+        expected_schema_dict: Dict[str, StructField] = {
+            t.name: t for t in expected_data_type_for_column.fields
+        }
 
-            # Recursively compare nested structs
-            column_errors = SparkDataFrameComparerHelper.check_column_value(
-                column_name=f"{column_name}.{struct_item_type.name}",
-                expected_value=expected_struct_item,
-                result_value=result_struct_item,
-                result_columns=result_columns,
-                row_num=row_num,
-                data_type_for_column=struct_item_data_type,
+        combined_schema: Dict[str, JoinedResult[StructField]] = (
+            DictionaryJoiner.join_dicts(
+                dict_1=result_schema_dict, dict_2=expected_schema_dict
             )
-            my_errors.extend(column_errors)
+        )
+        # Iterate through each field of the struct and compare the fields
+        field_name: str
+        combined_schema_item: JoinedResult[StructField]
+        for field_name, combined_schema_item in combined_schema.items():
+            if combined_schema_item.index_1 is None:
+                # column does not exist in result
+                # check if column value is not None in expected
+                if expected_value[combined_schema_item.index_2] is not None:
+                    my_errors.append(
+                        SparkDataFrameError(
+                            exception_type=ExceptionType.DataMismatch,
+                            result=None,
+                            expected=expected_value[combined_schema_item.index_2],
+                            message=f"row {row_num}: column {column_name}.{field_name} "
+                            f"expected: [{expected_value[combined_schema_item.index_2]}] actual: [None]",
+                        )
+                    )
+            elif combined_schema_item.index_2 is None:
+                # column does not exit in expected
+                # check if column value is not None in result
+                if result_value[combined_schema_item.index_1] is not None:
+                    my_errors.append(
+                        SparkDataFrameError(
+                            exception_type=ExceptionType.DataMismatch,
+                            result=result_value[combined_schema_item.index_1],
+                            expected=None,
+                            message=f"row {row_num}: column {column_name}.{field_name} "
+                            f"expected: [None] actual: [{result_value[combined_schema_item.index_1]}]",
+                        )
+                    )
+            else:
+                result_struct_item = result_value[combined_schema_item.index_1]
+                expected_struct_item = expected_value[combined_schema_item.index_2]
+                result_struct_item_type: Optional[StructField] = (
+                    combined_schema_item.value_1
+                )
+
+                # Recursively compare nested structs
+                column_errors = SparkDataFrameComparerHelper.check_column_value(
+                    column_name=(
+                        f"{column_name}.{result_struct_item_type.name}"
+                        if result_struct_item_type
+                        else column_name
+                    ),
+                    expected_value=expected_struct_item,
+                    result_value=result_struct_item,
+                    combined_schema_item=combined_schema_item,
+                    row_num=row_num,
+                )
+                my_errors.extend(column_errors)
 
         return my_errors
 

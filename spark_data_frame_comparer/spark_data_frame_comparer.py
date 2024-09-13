@@ -200,7 +200,6 @@ def assert_compare_data_frames(
                 my_errors=my_errors,
                 result_column_schemas=result_column_schemas,
                 expected_column_schemas=expected_column_schemas,
-                result_columns=result_columns,
                 result_rows=result_rows,
                 row_num=row_num,
             )
