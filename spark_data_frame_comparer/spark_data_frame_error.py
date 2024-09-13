@@ -8,14 +8,14 @@ class SparkDataFrameError(Exception):
         self,
         *,
         exception_type: ExceptionType,
-        result: str,
-        expected: str,
+        result: Optional[str],
+        expected: Optional[str],
         message: str,
         additional_info: Optional[str] = None,
     ) -> None:
         self.exception_type: ExceptionType = exception_type
-        self.result: str = result
-        self.expected: str = expected
+        self.result: Optional[str] = result
+        self.expected: Optional[str] = expected
         self.message: str = message
         self.full_message: str = f"""{message}
         Expected:[{expected}],

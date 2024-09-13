@@ -48,42 +48,75 @@ class SparkDataFrameComparerHelper:
             )
         )
         # Iterate over each column in the result dataframe schema
-        for result_column_num, (
-            result_column_name,
-            result_schema_for_column,
-        ) in enumerate(result_column_schemas.items()):
-            column_name: str = result_schema_for_column.name
-            result_value = result_rows[row_num][result_column_num]
-            expected_value = expected_rows[row_num][result_column_num]
+        column_name: str
+        combined_schema_item: JoinedResult[StructField]
+        for column_name, combined_schema_item in combined_schema.items():
+            # see if the column exists in both
 
-            # Check if both expected and result values are None or empty, and skip if true
-            if (expected_value is None or expected_value == "") and (
-                result_value is None or result_value == ""
-            ):
-                pass
-            # Handle case where one value is None but not the other
-            elif result_value is None or expected_value is None:
-                # Append error for mismatch
-                my_errors.append(
-                    SparkDataFrameError(
-                        exception_type=ExceptionType.DataMismatch,
-                        result=str(result_value),
-                        expected=str(expected_value),
-                        message=f"row {row_num}: column {result_column_name} "
-                        f"expected: [{expected_value}] actual: [{result_value}]",
+            if combined_schema_item.index_1 is None:
+                # column does not exist in result
+                # check if column value is not None in expected
+                if expected_rows[row_num][combined_schema_item.index_2] is not None:
+                    my_errors.append(
+                        SparkDataFrameError(
+                            exception_type=ExceptionType.DataMismatch,
+                            result=None,
+                            expected=expected_rows[row_num][
+                                combined_schema_item.index_2
+                            ],
+                            message=f"row {row_num}: column {column_name} "
+                            f"expected: [{expected_rows[row_num][combined_schema_item.index_2]}] actual: [None]",
+                        )
                     )
-                )
+            elif combined_schema_item.index_2 is None:
+                # column does not exit in expected
+                # check if column value is not None in result
+                if result_rows[row_num][combined_schema_item.index_1] is not None:
+                    my_errors.append(
+                        SparkDataFrameError(
+                            exception_type=ExceptionType.DataMismatch,
+                            result=result_rows[row_num][combined_schema_item.index_1],
+                            expected=None,
+                            message=f"row {row_num}: column {column_name} "
+                            f"expected: [None] actual: [{result_rows[row_num][combined_schema_item.index_1]}]",
+                        )
+                    )
             else:
-                # Check the individual column value and accumulate any column-specific errors
-                column_errors = SparkDataFrameComparerHelper.check_column_value(
-                    column_name=column_name,
-                    expected_value=expected_value,
-                    result_columns=result_columns,
-                    result_value=result_value,
-                    row_num=row_num,
-                    data_type_for_column=result_schema_for_column.dataType,
-                )
-                my_errors.extend(column_errors)
+                # column exists in both
+                result_value = result_rows[row_num][combined_schema_item.index_1]
+                expected_value = expected_rows[row_num][combined_schema_item.index_2]
+
+                # Check if both expected and result values are None or empty, and skip if true
+                if (expected_value is None or expected_value == "") and (
+                    result_value is None or result_value == ""
+                ):
+                    pass
+                # Handle case where one value is None but not the other
+                elif result_value is None or expected_value is None:
+                    # Append error for mismatch
+                    my_errors.append(
+                        SparkDataFrameError(
+                            exception_type=ExceptionType.DataMismatch,
+                            result=str(result_value),
+                            expected=str(expected_value),
+                            message=f"row {row_num}: column {column_name} "
+                            f"expected: [{expected_value}] actual: [{result_value}]",
+                        )
+                    )
+                else:
+                    assert (
+                        combined_schema_item.value_1 is not None
+                    ), "should always be set at this point"
+                    # Check the individual column value and accumulate any column-specific errors
+                    column_errors = SparkDataFrameComparerHelper.check_column_value(
+                        column_name=column_name,
+                        expected_value=expected_value,
+                        result_columns=result_columns,
+                        result_value=result_value,
+                        row_num=row_num,
+                        data_type_for_column=combined_schema_item.value_1.dataType,
+                    )
+                    my_errors.extend(column_errors)
 
         return my_errors
 
