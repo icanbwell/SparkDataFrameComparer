@@ -141,10 +141,10 @@ class SparkDataFrameComparerHelper:
         """
         my_errors: List[SparkDataFrameError] = []
 
-        result_data_type_for_column: Optional[StructField] = (
+        result_struct_field_for_column: Optional[StructField] = (
             combined_schema_item.value_1
         )
-        if result_data_type_for_column is None:
+        if result_struct_field_for_column is None:
             return [
                 SparkDataFrameError(
                     exception_type=ExceptionType.DataMismatch,
@@ -154,10 +154,10 @@ class SparkDataFrameComparerHelper:
                     f"but actual is {result_value}",
                 )
             ]
-        expected_data_type_for_column: Optional[StructField] = (
+        expected_struct_field_for_column: Optional[StructField] = (
             combined_schema_item.value_2
         )
-        if expected_data_type_for_column is None:
+        if expected_struct_field_for_column is None:
             return [
                 SparkDataFrameError(
                     exception_type=ExceptionType.DataMismatch,
@@ -168,15 +168,15 @@ class SparkDataFrameComparerHelper:
                 )
             ]
         # If the column is an array, handle comparison for array elements
-        if isinstance(result_data_type_for_column, ArrayType):
-            if isinstance(expected_data_type_for_column, ArrayType):
+        if isinstance(result_struct_field_for_column.dataType, ArrayType):
+            if isinstance(expected_struct_field_for_column.dataType, ArrayType):
                 column_errors = SparkDataFrameComparerHelper.check_array(
                     row_num=row_num,
                     column_name=column_name,
                     result_value=result_value,
                     expected_value=expected_value,
-                    result_data_type_for_column=result_data_type_for_column,
-                    expected_data_type_for_column=expected_data_type_for_column,
+                    result_data_type_for_column=result_struct_field_for_column.dataType,
+                    expected_data_type_for_column=expected_struct_field_for_column.dataType,
                 )
             else:
                 # If the expected column is not an array, log an error
@@ -190,16 +190,16 @@ class SparkDataFrameComparerHelper:
                     )
                 ]
             my_errors.extend(column_errors)
-        elif isinstance(result_data_type_for_column, StructType):
+        elif isinstance(result_struct_field_for_column.dataType, StructType):
             # Handle StructType comparison (nested columns)
-            if isinstance(expected_data_type_for_column, StructType):
+            if isinstance(expected_struct_field_for_column.dataType, StructType):
                 column_errors = SparkDataFrameComparerHelper.check_struct(
                     column_name=column_name,
                     expected_value=expected_value,
                     result_value=result_value,
                     row_num=row_num,
-                    result_data_type_for_column=result_data_type_for_column,
-                    expected_data_type_for_column=expected_data_type_for_column,
+                    result_data_type_for_column=result_struct_field_for_column.dataType,
+                    expected_data_type_for_column=expected_struct_field_for_column.dataType,
                 )
             else:
                 # If the expected column is not a struct, log an error
