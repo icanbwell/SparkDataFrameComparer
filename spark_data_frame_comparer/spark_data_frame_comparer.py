@@ -19,6 +19,7 @@ from spark_data_frame_comparer.spark_data_frame_exception_type import ExceptionT
 from spark_data_frame_comparer.spark_data_frame_sorter import SparkDataFrameSorter
 
 
+# noinspection PyDefaultArgument
 def assert_compare_data_frames(
     expected_df: DataFrame,
     result_df: DataFrame,
@@ -57,8 +58,15 @@ def assert_compare_data_frames(
     result_df = result_df.select(sorted(result_df.columns))
     expected_df = expected_df.select(sorted(expected_df.columns))
 
+    # find the columns to sort by that are present in both data frames
     sort_columns: List[str] = (
-        [col for col in order_by if col in result_df.columns] if order_by else []
+        [
+            col
+            for col in order_by
+            if col in result_df.columns and col in expected_df.columns
+        ]
+        if order_by
+        else []
     )
     if sort_columns:
         expected_df = expected_df.orderBy(*sort_columns)
