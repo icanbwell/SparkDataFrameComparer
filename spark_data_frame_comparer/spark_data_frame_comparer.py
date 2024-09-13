@@ -24,34 +24,32 @@ def assert_compare_data_frames(
     result_df: DataFrame,
     exclude_columns: Optional[List[str]] = None,
     include_columns: Optional[List[str]] = None,
-    order_by: Optional[List[str]] = None,
+    order_by: Optional[List[str]] = ["id"],
     expected_path: Optional[Union[Path, str]] = None,
     result_path: Optional[Union[Path, str]] = None,
     temp_folder: Optional[Union[Path, str]] = None,
     func_path_modifier: Optional[Callable[[Union[Path, str]], Union[Path, str]]] = None,
-    auto_sort: Optional[bool] = None,
+    auto_sort: Optional[bool] = True,
 ) -> None:
     """
     Compare two data frames and throws an exception if there is any difference
 
-    :param func_path_modifier:
-    :param expected_df:
-    :param result_df:
-    :param exclude_columns:
-    :param include_columns:
-    :param order_by:
-    :param expected_path:
-    :param result_path:
-    :param temp_folder:
+    :param func_path_modifier: a function to modify the path before passing it to the diff tool
+    :param expected_df: the expected data frame
+    :param result_df: the result data frame
+    :param exclude_columns: columns to exclude from the comparison
+    :param include_columns: columns to include in the comparison
+    :param order_by: columns to order by
+    :param expected_path: the path to the expected data frame
+    :param result_path: the path to the result data frame
+    :param temp_folder: the temp folder to store the compare file
     :param auto_sort: whether to automatically sort each data frame deterministically
-    :return:
+    :return: None
     """
     if exclude_columns:
         result_df = result_df.drop(*exclude_columns)
         expected_df = expected_df.drop(*exclude_columns)
-    if order_by:
-        expected_df = expected_df.orderBy(*order_by)
-        result_df = result_df.orderBy(*order_by)
+
     if include_columns:
         result_df = result_df.select(*include_columns)
         expected_df = expected_df.select(*include_columns)
@@ -59,7 +57,13 @@ def assert_compare_data_frames(
     result_df = result_df.select(sorted(result_df.columns))
     expected_df = expected_df.select(sorted(expected_df.columns))
 
-    if auto_sort:
+    sort_columns: List[str] = (
+        [col for col in order_by if col in result_df.columns] if order_by else []
+    )
+    if sort_columns:
+        expected_df = expected_df.orderBy(*sort_columns)
+        result_df = result_df.orderBy(*sort_columns)
+    elif auto_sort:
         result_df = SparkDataFrameSorter.deterministic_sort(df=result_df)
         expected_df = SparkDataFrameSorter.deterministic_sort(df=expected_df)
 
