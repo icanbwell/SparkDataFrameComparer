@@ -7,6 +7,12 @@ from pyspark.sql.types import ArrayType, StructType, DataType, Row, StructField
 # Custom error classes to handle dataframe comparison errors
 from spark_data_frame_comparer.spark_data_frame_error import SparkDataFrameError
 from spark_data_frame_comparer.spark_data_frame_exception_type import ExceptionType
+from spark_data_frame_comparer.utilities.dictionary_joiner.dictionary_joiner import (
+    DictionaryJoiner,
+)
+from spark_data_frame_comparer.utilities.dictionary_joiner.joined_result import (
+    JoinedResult,
+)
 
 
 class SparkDataFrameComparerHelper:
@@ -16,6 +22,7 @@ class SparkDataFrameComparerHelper:
         expected_rows: List[Row],
         my_errors: List[SparkDataFrameError],
         result_column_schemas: Dict[str, StructField],
+        expected_column_schemas: Dict[str, StructField],
         result_columns: List[Tuple[str, str]],
         result_rows: List[Row],
         row_num: int,
@@ -28,12 +35,18 @@ class SparkDataFrameComparerHelper:
         :param expected_rows: The list of expected rows.
         :param my_errors: The list of errors identified so far.
         :param result_column_schemas: The schema of the result DataFrame.
+        :param expected_column_schemas: The schema of the expected DataFrame.
         :param result_columns: The list of column names and types.
         :param result_rows: The list of rows from the result DataFrame.
         :param row_num: The current row number being compared.
         :return: The updated error count and a list of identified errors.
         """
 
+        combined_schema: Dict[str, JoinedResult[StructField]] = (
+            DictionaryJoiner.join_dicts(
+                dict_1=result_column_schemas, dict_2=expected_column_schemas
+            )
+        )
         # Iterate over each column in the result dataframe schema
         for result_column_num, (
             result_column_name,

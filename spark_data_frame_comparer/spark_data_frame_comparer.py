@@ -168,9 +168,9 @@ def assert_compare_data_frames(
             additional_info="",
             func_path_modifier=func_path_modifier,
         )
-    # expected_column_schemas: Dict[str, StructField] = {
-    #     t.name: t for t in expected_df.schema
-    # }
+    expected_column_schemas: Dict[str, StructField] = {
+        t.name: t for t in expected_df.schema
+    }
     result_column_schemas: Dict[str, StructField] = {
         t.name: t for t in result_df.schema
     }
@@ -199,6 +199,7 @@ def assert_compare_data_frames(
                 expected_rows=expected_rows,
                 my_errors=my_errors,
                 result_column_schemas=result_column_schemas,
+                expected_column_schemas=expected_column_schemas,
                 result_columns=result_columns,
                 result_rows=result_rows,
                 row_num=row_num,
