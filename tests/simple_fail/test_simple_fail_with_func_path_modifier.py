@@ -12,8 +12,8 @@ from spark_data_frame_comparer.spark_data_frame_comparer import (
 )
 from spark_data_frame_comparer.spark_data_frame_comparer_exception import (
     SparkDataFrameComparerException,
-    ExceptionType,
 )
+from spark_data_frame_comparer.spark_data_frame_exception_type import ExceptionType
 from tests.conftest import clean_spark_session
 
 

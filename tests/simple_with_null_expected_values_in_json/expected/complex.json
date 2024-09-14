@@ -1,0 +1,2 @@
+{"simple_field":  1, "complex_field":  [{"inner_key_str":  "test", "inner_key_int":  23}]}
+{"simple_field":  2, "complex_field":  [{"inner_key_str":  "test2", "inner_key_int":  24, "foo":  null}]}

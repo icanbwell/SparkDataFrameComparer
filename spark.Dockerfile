@@ -1,4 +1,4 @@
-FROM imranq2/helix.spark:3.5.1.5-slim
+FROM imranq2/helix.spark:3.5.1.11-slim
 # https://github.com/icanbwell/helix.spark
 USER root
 
@@ -8,7 +8,6 @@ ENV CLASSPATH=/sdc/jars:$CLASSPATH
 COPY Pipfile* /sdc/
 WORKDIR /sdc
 
-RUN df -h # for space monitoring
 RUN pipenv sync --dev --system --extra-pip-args="--prefer-binary"
 
 # override entrypoint to remove extra logging
@@ -18,11 +17,6 @@ USER root
 
 COPY . /sdc
 
-RUN df -h # for space monitoring
-RUN mkdir -p /fhir && chmod 777 /fhir
-RUN mkdir -p /.local/share/virtualenvs && chmod 777 /.local/share/virtualenvs
-# USER 1001
-
 # Run as non-root user
 # https://spark.apache.org/docs/latest/running-on-kubernetes.html#user-identity
-USER 185
+USER spark

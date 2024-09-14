@@ -14,9 +14,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Create directory and set permissions
+        run: |
+          sudo mkdir -p /home/runner/work/${{ github.repository }}
+          sudo chown -R runner:runner /home/runner/work/${{ github.repository }}
+          sudo chmod 777 /home/runner/work/${{ github.repository }}
+
+      - name: Create reports output folder
+        run: mkdir -p /home/runner/work/${{ github.repository }}/reports
+
       # Checks-out your repository
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
@@ -25,7 +34,70 @@ jobs:
         run: make run-pre-commit
 
       # setup and install everything and run tests
+      # https://docs.pytest.org/en/8.2.x/reference/reference.html#confval-junit_logging
       - name: up
         run: make up
       - name: tests
-        run: make tests
+        run: |
+          docker compose run --rm --name sdc_tests \
+            -v /home/runner/work/${{ github.repository }}/reports:/reports \
+            dev \
+            pytest \
+            -o junit_logging=all -o junit_log_passing_tests=false \
+            --tb=long \
+            --durations=10 \
+            --junitxml=/reports/pytest_report.xml > /home/runner/work/${{ github.repository }}/reports/pytest_output.log
+
+      - name: list pytest report
+        if: ${{ always() }}
+        run: |
+          ls -la /home/runner/work/${{ github.repository }}/reports
+          cat /home/runner/work/${{ github.repository }}/reports/pytest_report.xml
+
+      - name: Upload test output
+        # Use always() to always run this step to publish test results when there are test failures
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-output
+          path: /home/runner/work/${{ github.repository }}/reports/pytest_output.log
+
+      - name: Upload test report
+        # Use always() to always run this step to publish test results when there are test failures
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-report
+          path: /home/runner/work/${{ github.repository }}/reports/pytest_report.xml
+
+      - name: Surface failing tests
+        if: always()
+        uses: pmeier/pytest-results-action@main # https://github.com/pmeier/pytest-results-action
+        with:
+          # A list of JUnit XML files, directories containing the former, and wildcard
+          # patterns to process.
+          # See @actions/glob for supported patterns.
+          path: /home/runner/work/${{ github.repository }}/reports/*.xml
+
+          # (Optional) Add a summary of the results at the top of the report
+          summary: true
+
+          # (Optional) Select which results should be included in the report.
+          # Follows the same syntax as `pytest -r`
+          display-options: fEX
+
+          # (Optional) Fail the workflow if no JUnit XML was found.
+          fail-on-empty: true
+
+          # (Optional) Title of the test results section in the workflow summary
+          title: Test results
+
+      - name: Publish test results
+        uses: dorny/test-reporter@v1  # https://github.com/dorny/test-reporter
+        if: ${{ always() }}
+        with:
+          name: Pytest Summary
+          path: /home/runner/work/${{ github.repository }}/reports/pytest_report.xml
+          reporter: java-junit        # Format of test results
+          fail-on-error: false        # Do not change the build status if errors are found
+          list-tests: 'failed'       # List failed tests in the summary
