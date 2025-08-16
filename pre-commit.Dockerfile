@@ -4,9 +4,9 @@ RUN apt-get update && \
     apt-get install -y git && \
     pip install pipenv
 
-COPY Pipfile* ./
+COPY Pipfile Pipfile.lock ./
 
-RUN pipenv sync --dev --system --verbose
+RUN pipenv sync --system --dev --verbose
 
 WORKDIR /sourcecode
 RUN git config --global --add safe.directory /sourcecode

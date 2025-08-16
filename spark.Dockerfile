@@ -5,10 +5,10 @@ USER root
 ENV PYTHONPATH=/sdc
 ENV CLASSPATH=/sdc/jars:$CLASSPATH
 
-COPY Pipfile* /sdc/
+COPY Pipfile Pipfile.lock /sdc/
 WORKDIR /sdc
 
-RUN pipenv sync --dev --system --extra-pip-args="--prefer-binary"
+RUN pipenv sync --system --dev --extra-pip-args="--prefer-binary"
 
 # override entrypoint to remove extra logging
 RUN mv /opt/minimal_entrypoint.sh /opt/entrypoint.sh
