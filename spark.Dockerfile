@@ -8,7 +8,7 @@ ENV CLASSPATH=/sdc/jars:$CLASSPATH
 COPY Pipfile* /sdc/
 WORKDIR /sdc
 
-RUN pipenv sync --dev --system --categories spark --extra-pip-args="--prefer-binary"
+RUN pipenv sync --system --dev --extra-pip-args="--prefer-binary"
 
 # override entrypoint to remove extra logging
 RUN mv /opt/minimal_entrypoint.sh /opt/entrypoint.sh

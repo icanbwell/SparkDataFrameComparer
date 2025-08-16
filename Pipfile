@@ -7,8 +7,8 @@ name = "pypi"
 logger = ">=1.4"
 
 [packages.spark]
-py4j = "==0.10.9.7"
 pyspark = "==3.5.5"
+py4j    = "==0.10.9.7"
 
 [dev-packages]
 # setuptools is needed for building the package
