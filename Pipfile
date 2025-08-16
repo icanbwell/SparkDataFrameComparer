@@ -6,7 +6,7 @@ name = "pypi"
 [packages]
 logger = ">=1.4"
 
-[spark]
+[packages.spark]
 py4j = "==0.10.9.7"
 pyspark = "==3.5.5"
 
