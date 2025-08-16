@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "3f247c6fb76a1a5332c9b968b35aafa529cce59458c62be8c70946204d031072"
+            "sha256": "297710231e5280af688a101c9c0b7b02bdedaf727130aff2fb1708e554617553"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -23,11 +23,21 @@
             "index": "pypi",
             "version": "==1.4"
         },
-        "spark": {
+        "py4j": {
             "hashes": [
-                "sha256:df499b57d30178c6d32dbda2af188b9833a261a70ccd262126ed7b415d9e36d1"
+                "sha256:0b6e5315bb3ada5cf62ac651d107bb2ebc02def3dee9d9548e3baac644ea8dbb",
+                "sha256:85defdfd2b2376eb3abf5ca6474b51ab7e0de341c75a02f46dc9b5976f5a5c1b"
             ],
-            "version": "==0.2.1"
+            "index": "pypi",
+            "version": "==0.10.9.7"
+        },
+        "pyspark": {
+            "hashes": [
+                "sha256:6effc9ce98edf231f4d683fd14f7270629bf8458c628d6a2620ded4bb34f3cb9"
+            ],
+            "index": "pypi",
+            "markers": "python_version >= '3.8'",
+            "version": "==3.5.5"
         }
     },
     "develop": {
@@ -698,14 +708,6 @@
             "markers": "python_version >= '3.9'",
             "version": "==4.3.0"
         },
-        "py4j": {
-            "hashes": [
-                "sha256:0b6e5315bb3ada5cf62ac651d107bb2ebc02def3dee9d9548e3baac644ea8dbb",
-                "sha256:85defdfd2b2376eb3abf5ca6474b51ab7e0de341c75a02f46dc9b5976f5a5c1b"
-            ],
-            "index": "pypi",
-            "version": "==0.10.9.7"
-        },
         "pycodestyle": {
             "hashes": [
                 "sha256:c4b5b517d278089ff9d0abdec919cd97262a3367449ea1c8b49b91529167b783",
@@ -738,14 +740,6 @@
             "index": "pypi",
             "markers": "python_version >= '3.8'",
             "version": "==2.19.2"
-        },
-        "pyspark": {
-            "hashes": [
-                "sha256:6effc9ce98edf231f4d683fd14f7270629bf8458c628d6a2620ded4bb34f3cb9"
-            ],
-            "index": "pypi",
-            "markers": "python_version >= '3.8'",
-            "version": "==3.5.5"
         },
         "pytest": {
             "hashes": [
