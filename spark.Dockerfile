@@ -5,7 +5,7 @@ USER root
 ENV PYTHONPATH=/sdc
 ENV CLASSPATH=/sdc/jars:$CLASSPATH
 
-COPY Pipfile* /sdc/
+COPY Pipfile Pipfile.lock /sdc/
 WORKDIR /sdc
 
 RUN pipenv sync --system --dev --extra-pip-args="--prefer-binary"
