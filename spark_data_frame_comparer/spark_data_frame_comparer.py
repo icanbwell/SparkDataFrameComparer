@@ -83,12 +83,6 @@ def assert_compare_data_frames(
         compare_sh_path = Path(temp_folder).joinpath(
             f"compare_{expected_file_name}.command"
         )
-        # defense in depth: basename() above strips any directory component, so the
-        # compare file must end up as a direct child of temp_folder
-        if compare_sh_path.resolve().parent != Path(temp_folder).resolve():
-            raise ValueError(
-                f"Refusing to write compare file outside of temp folder {temp_folder}: {compare_sh_path}"
-            )
         with open(compare_sh_path, "w") as compare_sh:
             # this file is an executable shell script, so restrict it to the owner
             # before writing.  group/world write would let another local user change
