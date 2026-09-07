@@ -84,12 +84,15 @@ def assert_compare_data_frames(
             f"compare_{expected_file_name}.command"
         )
         with open(compare_sh_path, "w") as compare_sh:
+            # this file is an executable shell script, so restrict it to the owner
+            # before writing.  group/world write would let another local user change
+            # the command that gets run.
+            os.fchmod(compare_sh.fileno(), 0o700)
             compare_sh.write(
                 f"/usr/local/bin/charm diff "
                 f"{func_path_modifier(result_path) if func_path_modifier else result_path} "
                 f"{func_path_modifier(expected_path) if func_path_modifier else expected_path}"
             )
-            os.fchmod(compare_sh.fileno(), 0o7777)
 
     if sorted(result_df.columns) != sorted(expected_df.columns):
         print_data_frame_info(expected_df=expected_df, result_df=result_df)

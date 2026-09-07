@@ -25,6 +25,8 @@ jobs:
 
       # Checks-out your repository
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -72,7 +74,7 @@ jobs:
 
       - name: Surface failing tests
         if: always()
-        uses: pmeier/pytest-results-action@main # https://github.com/pmeier/pytest-results-action
+        uses: pmeier/pytest-results-action@fdc7f18d9934e38aca411ca9557e6577bd25ca9c # v0.9.0 https://github.com/pmeier/pytest-results-action
         with:
           # A list of JUnit XML files, directories containing the former, and wildcard
           # patterns to process.
@@ -93,7 +95,7 @@ jobs:
           title: Test results
 
       - name: Publish test results
-        uses: dorny/test-reporter@v1  # https://github.com/dorny/test-reporter
+        uses: dorny/test-reporter@3eeb9fc888e82e8be2fb356bbeec2750231672bc  # v1 https://github.com/dorny/test-reporter
         if: ${{ always() }}
         with:
           name: Pytest Summary
