@@ -13,6 +13,12 @@ jobs:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+      # required so aws-actions/configure-aws-credentials can request a GitHub
+      # OIDC token to assume the services-account role below
+      id-token: write
+
     steps:
       - name: Create directory and set permissions
         run: |
@@ -31,6 +37,34 @@ jobs:
         with:
           python-version: '3.12'
 
+      # Both Dockerfiles now pull their base image from the services account's
+      # private ECR (CIE-8032), so docker must be logged in there before any build:
+      #   spark.Dockerfile      -> helix.spark:3.5.5.0-slim
+      #   pre-commit.Dockerfile -> helix.spark:3.5.5.0-precommit-slim
+      #
+      # PREREQUISITE, NOT YET PROVISIONED: unlike helix.pipelines -- which runs this
+      # on the self-hosted `main` runner and inherits that runner's instance role --
+      # this repo is PUBLIC and runs on ubuntu-latest, so it has no AWS identity.
+      # A human must add a GitHub OIDC trust policy for
+      # repo:icanbwell/SparkDataFrameComparer to the role below (or provision a
+      # dedicated read-only ECR role and set AWS_SERVICES_ECR_ROLE_ARN as a repo
+      # variable).  Switching to a self-hosted runner is NOT an acceptable
+      # alternative for a public repo: fork pull requests would then execute
+      # untrusted code on b.well infrastructure.
+      # Note also that `pull_request` runs from forks receive no OIDC token, so
+      # external-contributor PRs cannot build these images at all.
+      - name: AWS Credentials (services account, for private ECR base images)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          role-to-assume: ${{ vars.AWS_SERVICES_ECR_ROLE_ARN || 'arn:aws:iam::856965016623:role/services-k8s-service-account-github-actions-runner' }}
+          role-session-name: ${{ github.run_id }}-services
+          role-duration-seconds: 3600
+
+      - name: Login to Amazon ECR (services)
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          skip-logout: true
 
       - name: pre-commit
         run: make run-pre-commit

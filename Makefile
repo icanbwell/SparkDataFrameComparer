@@ -2,24 +2,44 @@ LANG=en_US.utf-8
 
 export LANG
 
+## Private ECR (services account) that hosts this repo's base images:
+##   spark.Dockerfile      -> $(AWS_SERVICES_ECR)/helix.spark:3.5.5.0-slim
+##   pre-commit.Dockerfile -> $(AWS_SERVICES_ECR)/helix.spark:3.5.5.0-precommit-slim
+AWS_SERVICES_ECR ?= 856965016623.dkr.ecr.us-east-1.amazonaws.com
+## Local AWS profile for the services account; developers name their own.
+## Explicit rather than empty, so the login can't land on the caller's default account.
+AWS_SERVICES_PROFILE ?= services
+
+## Logs docker in to the private ECR above.  Run `aws sso login --profile services`
+## first.  In GitHub Actions there is no local AWS profile -- the workflow logs in
+## with OIDC before calling make -- so this is a no-op when CI is set.
+.PHONY: ecr-login
+ecr-login:
+ifdef CI
+	@echo "CI detected: skipping ECR login (the workflow already logged in via OIDC)."
+else
+	aws ecr get-login-password --region us-east-1 --profile $(AWS_SERVICES_PROFILE) | \
+		docker login --username AWS --password-stdin $(AWS_SERVICES_ECR)
+endif
+
 .PHONY: Pipfile.lock
-Pipfile.lock: Pipfile
+Pipfile.lock: Pipfile ecr-login
 	docker compose run --rm --name spark_dataframe_comparer dev \
 		/bin/bash -lc 'pipenv lock --clear --dev'
 
 .PHONY:devdocker
-devdocker: ## Builds the docker for dev
+devdocker: ecr-login ## Builds the docker for dev
 	docker compose build --no-cache
 
 .PHONY:init
 init: devdocker up setup-pre-commit  ## Initializes the local developer environment
 
 .PHONY:build
-build: ## Builds the docker for dev
+build: ecr-login ## Builds the docker for dev
 	docker compose build --progress=plain --parallel
 
 .PHONY: up
-up:
+up: ecr-login
 	docker compose up --build -d
 
 .PHONY: down
@@ -37,7 +57,7 @@ setup-pre-commit: Pipfile.lock
 	cp ./pre-commit-hook ./.git/hooks/pre-commit
 
 .PHONY:run-pre-commit
-run-pre-commit: setup-pre-commit
+run-pre-commit: ecr-login setup-pre-commit
 	./.git/hooks/pre-commit
 
 .PHONY:update
